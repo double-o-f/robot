@@ -56,3 +56,9 @@ git merge --quit #how to quit merge if there are conflicts
 
 #then add and commit
 
+git branch -d (branch) #delete local branch if fully merged
+git branch -D (branch) #force local delete branch
+
+git push (remote) -d (branch) #delete branch on remote
+git push (remote) :(branch) #same as previous command
+
