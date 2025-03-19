@@ -1,0 +1,58 @@
+git clone (remote) #clone repo
+git status #get status of local repo (changed files, staged files, untracked files, etc)
+git add (files) #stage files for commit
+git restore (files) #restore files from .git, same as running "git restore -W (files)"
+git restore -S (files) #unstage files
+git restore -SW (files) #unstage files and restore from .git
+git commit -m "(message)" #commit staged files to local repo, this command will open vim if you don't add a message
+
+#if you get trapped in vim
+#hit "ESC" to make sure you're in standard mode, type ":q!", and hit "enter"
+
+git push #update remote from local
+#if you don't have an upstream remote set you'll need to use the "-u" option
+git push -u (remote) (branch) #would look like examples below
+git push -u origin main
+git push -u origin dev
+
+git fetch #update .git from remote
+git pull #update .git and working directory from remote
+git sync #same as running pull and push, i've never used this one
+
+git remote -v #list current remote, "-v" shows remote url
+git branch #list local branches and see current branch
+git branch -r #list remote branches
+git branch (branch) #create branch off of current branch
+
+git checkout (branch) #switch branch
+git switch (branch)
+#used in this way both of these commands do the same thing
+#checkout can have extra functionality so switch was added to be less ambiguous
+#for example
+git checkout -b (branch) #same as running "git branch (branch)" and then "git checkout (branch)"
+
+git merge (branch) #merge (branch) with current branch
+git merge --quit #how to quit merge if there are conflicts
+#you'll probably want to run "git restore -SW (files)" if quit a merge
+
+#if you have a merge conflict it will look something like this
+#-file on current branch-
+;current text
+
+#-file on branch named dev-
+;dev text
+
+#-file with conflict after "git merge dev"-
+;<<<<<<< HEAD
+;current text
+;=======
+;dev text
+;>>>>>>> dev
+#head is the current branch
+
+#to deal with a merge conflict change the text however you need to
+#-file with conflict after "git merge dev"-
+;current dev text
+
+#then add and commit
+
