@@ -1,6 +1,18 @@
 #include <Arduino.h>
 #include <Servo.h>
 
+// LCD pins in User_Setup.h
+// #define TFT_MISO 50
+// #define TFT_MOSI 51
+// #define TFT_SCLK 52
+// #define TFT_CS   10  // Chip select control pin
+// #define TFT_DC    9  // Data Command control pin
+// #define TFT_RST   8  // Reset pin (could connect to RST pin)
+//#define TFT_RST  -1  // Set TFT_RST to -1 if display RESET is connected to ESP32 board RST
+
+// may need to reduce spi_frequency in User_Setup.h for stable connection
+// #define SPI_FREQUENCY 2000000 // 2 MHz (adjust as needed)
+
 
 // --------- Function Prototypes --------- //
 void checkQuit();
