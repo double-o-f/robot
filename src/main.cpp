@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <Servo.h>
+#include <Wire.h>
+#include <Adafruit_MLX90614.h>
 
 // LCD pins in User_Setup.h
 // #define TFT_MISO 50
@@ -14,6 +16,7 @@
 // #define SPI_FREQUENCY 2000000 // 2 MHz (adjust as needed)
 
 
+
 // --------- Function Prototypes --------- //
 void checkQuit();
 int calculateDistance(int, int);
@@ -21,26 +24,34 @@ int calculateDistance(int, int);
 void initializeData(float[]);
 void storeRadarData(int, float);
 float getRadarData(int);
+void displayRadarData(int, float);
 
 
 // --------- Variables --------- //
 
+// ir sensor
+Adafruit_MLX90614 IR_Sensor = Adafruit_MLX90614();
+
 // radar servo (RS)
-Servo radar_servo;
+Servo radarServo;
 const int RS_PIN = 27;
 const int RS_ANGLE_MIN = 15;
 const int RS_ANGLE_MAX = 165;
 
+// spool servo (SS)
+Servo spoolServo;
+const int SS_PIN = 9;
+
+// ultrasonic radar
+const int UR_ECHO_PIN = 23;
+const int UR_TRIG_PIN = 25;
+float UR_distance;
+float UR_data[RS_ANGLE_MAX - RS_ANGLE_MIN + 1]; // 151 for 15 to 165 degrees
+
+
 // ultrasonic at front of robot
-const int UF_ECHO_PIN = 23;
-const int UF_TRIG_PIN = 25;
-float UF_distance;
-float UF_data[RS_ANGLE_MAX - RS_ANGLE_MIN + 1]; // 151 for 15 to 165 degrees
-
-
-// ultrsonic radar
-// const int UR_ECHO_PIN = ;
-// const int UR_TRIG_PIN = ;
+// const int UF_ECHO_PIN = ;
+// const int UF_TRIG_PIN = ;
 
 
 
@@ -51,16 +62,24 @@ float UF_data[RS_ANGLE_MAX - RS_ANGLE_MIN + 1]; // 151 for 15 to 165 degrees
 void setup() {
   
   // set sensor pins
-  pinMode(UF_TRIG_PIN, OUTPUT);
-  pinMode(UF_ECHO_PIN, INPUT);
+  pinMode(UR_TRIG_PIN, OUTPUT);
+  pinMode(UR_ECHO_PIN, INPUT);
 
   // initialize data arrays
-  initializeData(UF_data);
+  initializeData(UR_data);
 
   Serial.begin(9600);
 
-  // define radar servo pin
-  radar_servo.attach(RS_PIN);
+  // define servo pins
+  radarServo.attach(RS_PIN);
+  spoolServo.attach(SS_PIN);
+
+  if (!IR_Sensor.begin()) {
+    Serial.println("Failed to initialize MLX90614 sensor! Check wiring.");
+    while (1); // Halt if sensor initialization fails
+}
+
+
 }
 
 
@@ -69,37 +88,54 @@ void setup() {
 // runs repeatedly
 void loop() {
 
-  // rotate servo
-  for (int i=15; i<=165; i++) {
-    radar_servo.write(i);
-    delay(15);
 
-    // check and save distance
-    UF_distance = calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN);
-    storeRadarData(i, UF_distance);
-    Serial.print(i);
-    Serial.print(" -- Distance: ");
-    Serial.println(UF_distance);
-  }
+  // read ambient temp (surroundings)
+  float ambientTemp = IR_Sensor.readAmbientTempC();
 
-  for (int i=165; i>15; i--){
-    radar_servo.write(i);
-    delay(15);
+  // read object temp (target)
+  float objectTemp = IR_Sensor.readObjectTempC();
 
-    // check and save distance
-    UF_distance = calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN);
-    storeRadarData(i, UF_distance);
-    Serial.print(i);
-    Serial.print(" -- Distance: ");
-    Serial.println(UF_distance);
-  }
+  // Print to Serial Monitor
+  Serial.print("Ambient Temperature: ");
+  Serial.print(ambientTemp);
+  Serial.println(" °C");
 
-  // UF_distance = calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN);
+  Serial.print("Object Temperature: ");
+  Serial.print(objectTemp);
+  Serial.println(" °C");
+
+  delay(1000); // Wait 1 second before the next reading
+
+  
+  // // rotate servo
+  // for (int angle=RS_ANGLE_MIN; angle<=RS_ANGLE_MAX; angle++) {
+  //   radarServo.write(angle);
+  //   spoolServo.write(angle);
+  //   delay(20);
+
+  //   // check and save distance
+  //   UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
+  //   storeRadarData(angle, UR_distance); // store in array
+
+  //   checkQuit();
+  // }
+
+  // for (int angle=RS_ANGLE_MAX; angle>RS_ANGLE_MIN; angle--){
+  //   radarServo.write(angle);
+  //   spoolServo.write(angle);
+  //   delay(20);
+
+  //   // check and save distance
+  //   UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
+  //   storeRadarData(angle, UR_distance); // store in array
+
+  //   checkQuit();
+  // }
+
+  // UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
   // Serial.print("Distance: ");
-  // Serial.println(UF_distance);
+  // Serial.println(UR_distance);
   // delay(10);
-
-  checkQuit();
 
 }
 
@@ -132,8 +168,7 @@ int calculateDistance(int trig_pin, int echo_pin) {
 
   // reads echo_pin, returns sound wave travel time in ms
   long duration = pulseIn(echo_pin, HIGH);
-  int distance = duration*0.034/2;
-  return distance;
+  return duration*0.0343/2; // convert to cm
 
 }
 
@@ -154,7 +189,7 @@ void storeRadarData(int angle, float distance) {
 
   if (angle >= RS_ANGLE_MIN && angle <= RS_ANGLE_MAX) {
     int index = angle - RS_ANGLE_MIN;
-    UF_data[index] = distance;
+    UR_data[index] = distance;
   }
 
 }
@@ -164,11 +199,10 @@ float getRadarData(int angle) {
 
   if (angle >= RS_ANGLE_MIN && angle < RS_ANGLE_MAX) {
     int index = angle - RS_ANGLE_MIN;
-    return UF_data[index];
+    return UR_data[index];
   }
   return -1;
 }
-
 
 
 
