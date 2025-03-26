@@ -5,7 +5,8 @@
 
 // --------- Function Prototypes --------- //
 void checkQuit();
-int calculateDistance(int, int);
+float calculateDistance(const int, const int);
+void calculateData(int);
 
 
 
@@ -20,13 +21,14 @@ const int RS_ANGLE_INTERVAL = 2;
 
 
 // ultrasonic radar
-const int UR_ECHO_PIN = 23;
-const int UR_TRIG_PIN = 25;
+const int UR_ECHO_PIN = 31;
+const int UR_TRIG_PIN = 30;
 float UR_distance;
 
-// ultrasonic at front of robot
-// const int UF_ECHO_PIN = ;
-// const int UF_TRIG_PIN = ;
+//ultrasonic at front of robot
+const int UF_ECHO_PIN = 29;
+const int UF_TRIG_PIN = 28;
+float UF_distance;
 
 
 
@@ -34,32 +36,42 @@ float UR_distance;
 // --------- Setup --------- //
 
 // runs once
+//Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+
 void setup() {
   
   // set sensor pins
   pinMode(UR_TRIG_PIN, OUTPUT);
   pinMode(UR_ECHO_PIN, INPUT);
+  pinMode(UF_TRIG_PIN, OUTPUT);
+  pinMode(UF_ECHO_PIN, INPUT);
 
-  Serial.begin(9600);
+  Serial.begin(100000);
 
   // define servo pins
   radarServo.attach(RS_PIN);
 
+//   if (!mlx.begin()) {
+//     Serial.println("Error connecting to MLX90614! Check wiring.");
+//     while(1);
+
+// }
 }
 
 
-// --------- Main Loop --------- //
 
+// --------- Main Loop --------- //
 // runs repeatedly
 void loop() {
 
   
   // rotate servo
   for (int angle=RS_ANGLE_MIN; angle<=RS_ANGLE_MAX; angle+=RS_ANGLE_INTERVAL) {
+    calculateData(angle);
+   
     radarServo.write(angle);
     Serial.println(angle);
-    delay(20);
-
+    delay(20); 
     // check and save distance
     // UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
 
@@ -67,8 +79,7 @@ void loop() {
   }
 
   for (int angle=RS_ANGLE_MAX; angle>RS_ANGLE_MIN; angle-=RS_ANGLE_INTERVAL){
-    radarServo.write(angle);
-    Serial.println(angle);
+    calculateData(angle);
     delay(20);
 
     // check and save distance
@@ -90,6 +101,13 @@ void loop() {
 
 // --------- Functions --------- //
 
+void calculateData(int angle){
+
+  String data = ("A:" + String(angle) + "DS:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + "DA:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)));
+  //"AT:", String(mlx.readAmbientTempC()) + "OT:" + String(mlx.readObjectTempC())
+  Serial.print(data);
+}
+
 
 // quit running if q is pressed
 void checkQuit() {
@@ -103,7 +121,7 @@ void checkQuit() {
 }
 
 // calculates distance for a given sensor
-int calculateDistance(int trig_pin, int echo_pin) {
+float calculateDistance(const int trig_pin, const int echo_pin) {
 
   digitalWrite(trig_pin, LOW);
   delayMicroseconds(2);
@@ -113,7 +131,7 @@ int calculateDistance(int trig_pin, int echo_pin) {
   digitalWrite(trig_pin, LOW);
 
   // reads echo_pin, returns sound wave travel time in ms
-  long duration = pulseIn(echo_pin, HIGH);
+  float duration = pulseIn(echo_pin, HIGH);
   return duration*0.0343/2; // convert to cm
 
 }
