@@ -30,12 +30,6 @@ const int UR_ECHO_PIN = 31;
 const int UR_TRIG_PIN = 30;
 float UR_distance;
 
-//ultrasonic at front of robot
-const int UF_ECHO_PIN = 29;
-const int UF_TRIG_PIN = 28;
-float UF_distance;
-
-
 
 
 // --------- Setup --------- //
@@ -75,7 +69,7 @@ void loop() {
     calculateData(angle);
    
     radarServo.write(angle);
-    Serial.println(angle);
+
     delay(20); 
     // check and save distance
     // UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
@@ -85,6 +79,7 @@ void loop() {
 
   for (int angle=RS_ANGLE_MAX; angle>RS_ANGLE_MIN; angle-=RS_ANGLE_INTERVAL){
     calculateData(angle);
+    radarServo.write(angle);
     delay(20);
 
     checkQuit();
@@ -101,7 +96,7 @@ void calculateData(int angle){
 
   String data = ("A:" + String(angle) + "DS:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + "DA:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)));
   //"AT:", String(mlx.readAmbientTempC()) + "OT:" + String(mlx.readObjectTempC())
-  Serial.print(data);
+  Serial.println(data);
 }
 
 
@@ -131,10 +126,6 @@ float calculateDistance(const int trig_pin, const int echo_pin) {
   return duration*0.0343/2; // convert to cm
 
 }
-
-
-
-
 
 
 
