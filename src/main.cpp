@@ -20,6 +20,11 @@ const int RS_ANGLE_MAX = 180;
 const int RS_ANGLE_INTERVAL = 2;
 
 
+// ultrasonic at front of robot
+const int UF_ECHO_PIN = 29;
+const int UF_TRIG_PIN = 28;
+float UF_distance;
+
 // ultrasonic radar
 const int UR_ECHO_PIN = 31;
 const int UR_TRIG_PIN = 30;
@@ -82,17 +87,8 @@ void loop() {
     calculateData(angle);
     delay(20);
 
-    // check and save distance
-    // UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
-
     checkQuit();
   }
-
-  // USE THIS FOR FRONT ONE
-  // UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
-  // Serial.print("Distance: ");
-  // Serial.println(UR_distance);
-  // delay(10);
 
 }
 
