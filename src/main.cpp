@@ -14,8 +14,9 @@ int calculateDistance(int, int);
 // radar servo (RS)
 Servo radarServo;
 const int RS_PIN = 10;
-const int RS_ANGLE_MIN = 15;
-const int RS_ANGLE_MAX = 165;
+const int RS_ANGLE_MIN = 0;
+const int RS_ANGLE_MAX = 180;
+const int RS_ANGLE_INTERVAL = 2;
 
 
 // ultrasonic radar
@@ -54,7 +55,7 @@ void loop() {
 
   
   // rotate servo
-  for (int angle=RS_ANGLE_MIN; angle<=RS_ANGLE_MAX; angle++) {
+  for (int angle=RS_ANGLE_MIN; angle<=RS_ANGLE_MAX; angle+=RS_ANGLE_INTERVAL) {
     radarServo.write(angle);
     Serial.println(angle);
     delay(20);
@@ -65,7 +66,7 @@ void loop() {
     checkQuit();
   }
 
-  for (int angle=RS_ANGLE_MAX; angle>RS_ANGLE_MIN; angle--){
+  for (int angle=RS_ANGLE_MAX; angle>RS_ANGLE_MIN; angle-=RS_ANGLE_INTERVAL){
     radarServo.write(angle);
     Serial.println(angle);
     delay(20);
