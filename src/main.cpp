@@ -25,8 +25,8 @@ const int UF_TRIG_PIN = 28;
 float UF_distance;
 
 // ultrasonic radar
-const int UR_ECHO_PIN = 30;
-const int UR_TRIG_PIN = 31;
+const int UR_ECHO_PIN = 31;
+const int UR_TRIG_PIN = 30;
 float UR_distance;
 
 
@@ -40,6 +40,9 @@ void setup() {
   // set sensor pins
   pinMode(UF_TRIG_PIN, OUTPUT);
   pinMode(UF_ECHO_PIN, INPUT);
+  // pinMode(UR_TRIG_PIN, OUTPUT);
+  // pinMode(UR_ECHO_PIN, INPUT);
+
 
   Serial.begin(9600);
 
@@ -60,12 +63,14 @@ void loop() {
     
     // get front and radar ultrasonic
     UF_distance = calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN);
-    UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
+    // UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
 
 
-    // log front ultrasonic distance
+    // log front ultrasonic and radar distance
     Serial.print("Distance: ");
     Serial.println(UF_distance);
+    // Serial.print(", ");
+    // Serial.println(UR_distance);
 
     
     radarServo.write(angle);
@@ -79,11 +84,13 @@ void loop() {
     
     // get front and radar ultrasonic
     UF_distance = calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN);
-    UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
+    // UR_distance = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
 
-    // log front ultrasonic distance
+    // log front ultrasonic and radar distance
     Serial.print("Distance: ");
     Serial.println(UF_distance);
+    // Serial.print(", ");
+    // Serial.println(UR_distance);
     
     
     radarServo.write(angle);
