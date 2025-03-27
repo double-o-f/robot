@@ -1,0 +1,66 @@
+#import RPi.GPIO as GPIO
+#import smbus
+import numpy as np
+import matplotlib as plt
+import time
+import math
+import serial
+
+# Define map size and resolution
+MAP_SIZE = 1024  # Size of the map (1024x1024)
+MAP_RESOLUTION = 7.62  # Each cell represents 3 in
+occupancy_grid = np.zeros((MAP_SIZE, MAP_SIZE))  # Initialize occupancy grid
+
+
+
+ser = serial.Serial('COM6', 115200, timeout=1) 
+
+def readStream():
+    if ser.in_waiting > 0:  # Check if data is available
+        data = ser.readline().decode().strip()  # Read and decode
+       
+        return {
+            "A": int(data.split(":")[0]),  # Angle
+            "DS": float(data.split(":")[1]),  # Distance from the first sensor
+            "DA": float(data.split(":")[2]),   # Distance from the second sensor
+            "AT": float(data.split(":")[3]),
+            "OT": float(data.split(":")[4])
+        }  
+    return None     
+
+# def update_map(distance, angle):
+#     global robot_x, robot_y
+
+#     # Calculate the position in the grid
+#     if distance < 100:  # Use a threshold to avoid noise TEST THIS
+#         grid_x = int(robot_x + (distance / MAP_RESOLUTION) * math.cos(math.radians(angle)))
+#         grid_y = int(robot_y + (distance / MAP_RESOLUTION) * math.sin(math.radians(angle)))
+
+#         # Ensure within bounds of the map
+#         if 0 <= grid_x < MAP_SIZE and 0 <= grid_y < MAP_SIZE:
+#             occupancy_grid[grid_y, grid_x] = 1  # Mark as occupied
+
+        
+def visualize_map():
+    plt.imshow(occupancy_grid, cmap="gray_r", origin="lower")
+    plt.title("Occupancy Grid Map")
+    plt.pause(0.01)
+
+
+
+def main():
+    #plt.ion() 
+    
+    while(True):
+
+        data = readStream()
+        if data is not None:
+            print(data)
+            # update_map(data["DS"], 90)
+            # update_map(data["DA"], data["A"])            
+            # visualize_map()
+        time.sleep(0.1)    
+            
+        
+
+main()
