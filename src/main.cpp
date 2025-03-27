@@ -7,7 +7,8 @@
 void checkQuit();
 float calculateDistance(const int, const int);
 void calculateData(int);
-
+void rotateMotor(const int, const int, const int);
+void stopMotors();
 
 
 // --------- Variables --------- //
@@ -31,6 +32,16 @@ const int UR_TRIG_PIN = 30;
 float UR_distance;
 
 
+// Wheel Motors
+const int WHEEL_ENA = 6;
+const int WHEEL_IN1 = 22;
+const int WHEEL_IN2 = 23;
+
+const int WHEEL_ENB = 7;
+const int WHEEL_IN3 = 24;
+const int WHEEL_IN4 = 25;
+
+
 
 // --------- Setup --------- //
 
@@ -45,16 +56,23 @@ void setup() {
   pinMode(UF_TRIG_PIN, OUTPUT);
   pinMode(UF_ECHO_PIN, INPUT);
 
-  Serial.begin(100000);
-
   // define servo pins
   radarServo.attach(RS_PIN);
+
+  // Define wheel motor pins
+  pinMode(WHEEL_ENA, OUTPUT);
+  pinMode(WHEEL_IN1, OUTPUT);
+  pinMode(WHEEL_IN2, OUTPUT);
+
+
 
 //   if (!mlx.begin()) {
 //     Serial.println("Error connecting to MLX90614! Check wiring.");
 //     while(1);
 
 // }
+
+  Serial.begin(9600);
 }
 
 
@@ -62,6 +80,9 @@ void setup() {
 // --------- Main Loop --------- //
 // runs repeatedly
 void loop() {
+
+  rotateMotor(WHEEL_ENA, WHEEL_IN1, WHEEL_IN2);
+  checkQuit();
 
   
   // rotate servo
@@ -85,12 +106,63 @@ void loop() {
     checkQuit();
   }
 
+  stopMotors();
+
 }
 
 
 
 
 // --------- Functions --------- //
+
+void stopMotors() {
+  digitalWrite(WHEEL_IN1, LOW);
+  digitalWrite(WHEEL_IN2, LOW);
+  analogWrite(WHEEL_ENA, 0);
+
+  digitalWrite(WHEEL_IN3, LOW);
+  digitalWrite(WHEEL_IN4, LOW);
+  analogWrite(WHEEL_ENB, 0);
+}
+
+void rotateMotor(const int ENA, const int IN1, const int IN2) {
+
+  /*
+
+  ENA pin -- sets speed
+  IN1 / IN2 -- sets direction
+  
+  IN1 - H and IN2 - L == forward
+  IN1 - L and IN2 - H == backward
+  
+  */
+
+  // Rotate motor forward
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, 255); // Set speed (0-255)
+
+  // get rid of delay and it should run while other code executes
+  // delay(2000); // Run for 2 seconds
+
+  // delay(20); // Wait for 2 seconds
+
+  // Rotate motor backward
+  // digitalWrite(IN1, LOW);
+  // digitalWrite(IN2, HIGH);
+  // analogWrite(ENA, 255); // Set speed (0-255)
+
+  // delay(2000); // Run for 2 seconds
+
+  // // Stop motor
+  // digitalWrite(IN1, LOW);
+  // digitalWrite(IN2, LOW);
+  // analogWrite(ENA, 0); // Stop motor
+
+  // delay(2000); // Wait for 2 seconds
+
+
+}
 
 void calculateData(int angle){
 
@@ -106,6 +178,7 @@ void checkQuit() {
     char command = Serial.read();
     if (command == 'q') { // 'Q' stands for "quit"
       Serial.print("Program Stopped");
+      stopMotors();
       while (true); // Infinite loop stops the program
     }
   }
