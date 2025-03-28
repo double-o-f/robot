@@ -132,6 +132,6 @@ while True:
         exit(130)
 
     except:
-        print("attempting reconnect to " + ARD_COM0)
+        print("attempting reconnect to " + ARD_COM)
         ser.close()
         connectArd()
