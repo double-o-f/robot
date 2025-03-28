@@ -170,9 +170,11 @@ void rotateMotor(const int ENA, const int IN1, const int IN2) {
 }
 
 void calculateData(int angle){
-
-  String data = ("A:" + String(angle) + "DS:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + "DA:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)));
-  //"AT:", String(mlx.readAmbientTempC()) + "OT:" + String(mlx.readObjectTempC())
+  String data = ("AG:" + String(angle)                                       + ":AG-" + 
+                 "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
+                 "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
+                 "TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
+                 "TO:" + String(mlx.readObjectTempC())                       + ":TO");
   Serial.println(data);
 }
 
