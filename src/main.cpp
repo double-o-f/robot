@@ -67,6 +67,9 @@ Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 void setup() {
   
+  Serial.begin(9600);
+
+  
   // set sensor pins
   pinMode(UR_TRIG_PIN, OUTPUT);
   pinMode(UR_ECHO_PIN, INPUT);
@@ -83,24 +86,10 @@ void setup() {
   pinMode(WHEEL_IN1, OUTPUT);
   pinMode(WHEEL_IN2, OUTPUT);
 
+  mpu.begin();
 
-
-//   if (!mlx.begin()) {
-//     Serial.println("Error connecting to MLX90614! Check wiring.");
-//     while(1);
-
-// }
-
-  Serial.begin(9600);
-
-  Serial.println("balls");
-  // mpu 6050
-  Serial.print(mpu.begin());
-  
-  Serial.println("balls");
-  
   // can try different range for more accurate readings (2-16)
-  mpu.setAccelerometerRange(MPU6050_RANGE_8_G); // not need if no use acceleromter
+  // mpu.setAccelerometerRange(MPU6050_RANGE_8_G); // not need if no use acceleromter
 
 }
 
@@ -110,25 +99,15 @@ void setup() {
 
 void loop() {
 
+  // radarServo.write(radarAngle);
 
-  radarServo.write(radarAngle);
-
-
-  // get mpu6050 data
-  float angle = getYawAngle();
-  // Serial.print("Yaw angle: ");
-  // Serial.println(int(angle));
-
-
-
+  calculateData(radarAngle);
 
   // update radar angle
   if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN)
     RS_ANGLE_INTERVAL = -RS_ANGLE_INTERVAL;
 
   radarAngle += RS_ANGLE_INTERVAL;
-
-  checkQuit();
 
 }
 
@@ -240,12 +219,14 @@ void rotateMotor(const int ENA, const int IN1, const int IN2) {
 }
 
 void calculateData(int angle){
+
   String data = ("AG:" + String(angle)                                       + ":AG-" + 
                  "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
                  "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
-                 "TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
-                 "TO:" + String(mlx.readObjectTempC())                       + ":TO-" +
+                 //"TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
+                 //"TO:" + String(mlx.readObjectTempC())                       + ":TO-" +
                  "YA:" + String(int(getYawAngle()))                          + ":YA-");
+
   Serial.println(data);
 }
 

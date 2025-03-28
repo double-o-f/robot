@@ -49,10 +49,11 @@ def readStream():
         TO = None #obj temp
         YA = None #yaw
 
-        #print(data, end='')
+        print(data, end='')
 
         AG0 = data.find("AG:")
         AG1 = data.find(":AG")
+        print(AG0, AG1)
         if AG0 != -1 and AG1 != -1:
             AG = int(data[AG0 + 3:AG1])
             #print(AG)
@@ -91,9 +92,11 @@ def readStream():
 
         YA0 = data.find("YA:")
         YA1 = data.find(":YA")
+        print(YA0)
+        print(YA1)
         if YA0 != -1 and YA1 != -1:
             YA = int(data[YA0 + 3:YA1])
-            #print(YA) 
+            print(YA) 
 
         return (True, AG, DF, DP, TR, TO, YA)
     return (False, None, None, None, None, None, None)
