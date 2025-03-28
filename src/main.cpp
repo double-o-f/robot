@@ -244,7 +244,8 @@ void calculateData(int angle){
                  "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
                  "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
                  "TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
-                 "TO:" + String(mlx.readObjectTempC())                       + ":TO");
+                 "TO:" + String(mlx.readObjectTempC())                       + ":TO-" +
+                 "YA:" + String(int(getYawAngle()))                          + ":YA-");
   Serial.println(data);
 }
 
