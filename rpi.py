@@ -16,6 +16,29 @@ ser = None
 ARD_COM = ("COM5", "COM5")
 tryCom = 0
 
+
+def connectArd():
+    global ser
+    global tryCom
+    tryInit = True
+    while tryInit:
+        try:
+            ser = serial.Serial(ARD_COM[tryCom], 115200, timeout=.1)
+
+        except KeyboardInterrupt:
+            exit(130)
+
+        except:
+            print("could no connect to " + ARD_COM[tryCom])
+            if tryCom >= len(ARD_COM) - 1:
+                tryCom = 0
+            else:
+                tryCom += 1
+            time.sleep(0.125)
+        else:
+            tryInit = False
+
+
 def readStream():
     data = ser.readline().decode()#.strip()  # Read and decode
     if data != '':
