@@ -82,6 +82,7 @@ void setup() {
 void loop() {
 
   rotateMotor(WHEEL_ENA, WHEEL_IN1, WHEEL_IN2);
+  rotateMotor(WHEEL_ENB, WHEEL_IN3, WHEEL_IN4);
   checkQuit();
 
   
@@ -106,7 +107,11 @@ void loop() {
     checkQuit();
   }
 
-  stopMotors();
+  while (true)
+  {
+    stopMotors();
+  }
+  
 
 }
 
