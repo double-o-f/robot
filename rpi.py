@@ -12,7 +12,8 @@ MAP_RESOLUTION = 7.62  # Each cell represents 3 in
 occupancy_grid = np.zeros((MAP_SIZE, MAP_SIZE))  # Initialize occupancy grid
 
 ser = None
-ARD_COM = ("/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2", "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2")
+# ARD_COM = ("/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2", "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2")
+ARD_COM = ("COM5", "COM5")
 tryCom = 0
 
 def connectArd():

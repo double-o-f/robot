@@ -93,12 +93,14 @@ void setup() {
 
   Serial.begin(9600);
 
-
+  Serial.println("balls");
   // mpu 6050
   Serial.print(mpu.begin());
   
+  Serial.println("balls");
+  
   // can try different range for more accurate readings (2-16)
-  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G); // not need if no use acceleromter
 
 }
 
@@ -114,8 +116,8 @@ void loop() {
 
   // get mpu6050 data
   float angle = getYawAngle();
-  Serial.print("Yaw angle: ");
-  Serial.println(int(angle));
+  // Serial.print("Yaw angle: ");
+  // Serial.println(int(angle));
 
 
 
