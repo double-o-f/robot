@@ -204,64 +204,27 @@ void loop() {
     robot_angle = getYawAngle();
     Serial.println(robot_angle);
 
+    digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+    digitalWrite(L_WHEEL_IN2, LOW); 
+    analogWrite(R_WHEEL_SPEED, 255); 
+
+    digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+    digitalWrite(R_WHEEL_IN2, LOW);  
+    analogWrite(L_WHEEL_SPEED, 255);
+
     //update radar angle
     while (true)
     {
-      
-        robot_angle = getYawAngle();
-        Serial.println(robot_angle);
-
-
-        if (((radarAngle > RS_ANGLE_MAX) && fuck2) || ((radarAngle < RS_ANGLE_MIN) && !fuck2)) {
-
-            fuck2 = !fuck2;
-            forward(500 * lowDist);
-            delay(1000);
-            
-            if (trn == 0) {
-                turn(0);
-            }
-            else if (trn == 1) {
-                if (calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN) < 16) { //TODO fix dist
-                    delay(5000);
-                    if (getTemp() > 35) {
-                        while(true){Serial.println("temp reached");}
-                    }
-                    turn(90);
-                    robot_angle = getYawAngle();
-                }
-                else {
-                  turn(45);
-                }
-            }
-            else if (trn == 2) {
-              turn(-45);
-            }
-
-            if (trn >= 2) {
-                trn = 0;
-            }
-            else {
-                trn += 1;
-            }
-
-            break;
+      if (calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN) < 16) {
+        stopMotors();
+        delay(5000);
+        if (getTemp() > 35) {
+          
         }
+      }
+
+
     
-        float fuck = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
-        Serial.println(fuck);
-        if (fuck < lowDist) {
-            lowDist = fuck;
-        }
-
-        if (fuck2) {
-          radarAngle += RS_ANGLE_INTERVAL;
-        }
-        else {
-          radarAngle -= RS_ANGLE_INTERVAL;
-        }
-        radarServo.write(radarAngle);
-        delay(1);
     }
     
 
