@@ -193,7 +193,7 @@ void ESCAPE() {
 //
 //}
 
-int robot_angle = 0;
+int robot_angle = getYawAngle();
 int trn = 1;
 bool fuck2 = true;
 
@@ -219,7 +219,7 @@ void loop() {
             delay(1000);
             
             if (trn == 0) {
-                turn(45);
+                turn(0);
             }
             else if (trn == 1) {
                 if (calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN) < 16) { //TODO fix dist
@@ -228,13 +228,14 @@ void loop() {
                         while(true){Serial.println("temp reached");}
                     }
                     turn(90);
+                    robot_angle = getYawAngle();
                 }
                 else {
                   turn(45);
                 }
             }
             else if (trn == 2) {
-              turn(-90);
+              turn(-45);
             }
 
             if (trn >= 2) {
