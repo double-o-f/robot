@@ -10,7 +10,7 @@
 // --------- Function Prototypes --------- //
 void checkQuit();
 float calculateDistance(const int, const int);
-void calculateData(int);
+void sendData(int);
 void rotateMotor(const int, const int, const int);
 void stopMotors();
 
@@ -101,7 +101,7 @@ void loop() {
 
   // radarServo.write(radarAngle);
 
-  calculateData(radarAngle);
+  sendData(radarAngle);
 
   // update radar angle
   if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN)
@@ -218,7 +218,7 @@ void rotateMotor(const int ENA, const int IN1, const int IN2) {
 
 }
 
-void calculateData(int angle){
+void sendData(int angle){
 
   String data = ("AG:" + String(angle)                                       + ":AG-" + 
                  "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
