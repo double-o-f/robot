@@ -19,6 +19,9 @@ float getYawAngle();
 void calibrateGyro();
 void setAngle(int);
 float getTemp();
+
+void turn(int);
+void forward(int);
 // --------- Variables --------- //
 
 // radar servo (RS)
@@ -185,38 +188,45 @@ void ESCAPE() {
 //
 //}
 
-
+int robot_angle = 0;
 int trn = 1;
+
 void loop() {
     float lowDist = INFINITY;
     
      
-    //getYawAngle() - gyroZOffset
+    robot_angle = getYawAngle();
+    Serial.println(robot_angle);
 
     //update radar angle
     while (true)
     {
+      
+        robot_angle = getYawAngle();
+        Serial.println(robot_angle);
+
+
         if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN) {
             RS_ANGLE_INTERVAL = -RS_ANGLE_INTERVAL;
-            //forward(sleep * lowDist);
+            forward(1000 * lowDist);
             
             if (trn == 0) {
-                //turn(till +45);
+                turn(45);
             }
             else if (trn == 1) {
                 if (calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN) < 16) { //TODO fix dist
                     delay(5000);
                     if (getTemp() > 35) {
-                        while(true){}
+                        while(true){Serial.println("temp reached");}
                     }
-                    //turn(+90);
+                    turn(90);
                 }
                 else {
-                    //turn(till +45);
+                  turn(45);
                 }
             }
             else if (trn == 2) {
-                //turn(till -90);
+              turn(-90);
             }
 
             if (trn >= 2) {
@@ -230,6 +240,7 @@ void loop() {
         }
     
         float fuck = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
+        Serial.println(fuck);
         if (fuck < lowDist) {
             lowDist = fuck;
         }
@@ -324,12 +335,13 @@ void calibrateGyro() {
 
 
 
-int robot_angle = 0;
-
 void turn(int angle) {
 
+  int initial_angle = robot_angle;
+
   if (angle > 0) {
-    while (robot_angle < (robot_angle + angle)) {
+    while (robot_angle < (initial_angle + angle)) {
+        robot_angle = getYawAngle();
         digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
         digitalWrite(L_WHEEL_IN2, LOW); 
         analogWrite(R_WHEEL_SPEED, 255); 
@@ -340,14 +352,15 @@ void turn(int angle) {
     }
   }
   else {
-    while (robot_angle > (robot_angle + angle)) {
+    while (robot_angle > (initial_angle + angle)) {
+        robot_angle = getYawAngle();
         digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
         digitalWrite(L_WHEEL_IN2, HIGH); 
         analogWrite(R_WHEEL_SPEED, 255); 
     
         digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
         digitalWrite(R_WHEEL_IN2, LOW);  
-        analogWrite(L_WHEEL_SPEED, 50);
+        analogWrite(L_WHEEL_SPEED, 255);
     }
   }
 
@@ -356,10 +369,15 @@ void turn(int angle) {
 
 void forward(int time) {
 
+    digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+    digitalWrite(L_WHEEL_IN2, LOW); 
+    analogWrite(R_WHEEL_SPEED, 255); 
 
+    digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+    digitalWrite(R_WHEEL_IN2, LOW);  
+    analogWrite(L_WHEEL_SPEED, 255);
 
-
-    delay(time * 1000); // in seconds
+    delay(time); // in ms
     stopMotors();
 
 }
