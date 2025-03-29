@@ -5,17 +5,25 @@ import numpy as np
 import time
 import math
 import serial
-import slam
+#import slam
 
 # Define map size and resolution
 MAP_SIZE = 1024  # Size of the map (1024x1024)
 MAP_RESOLUTION = 7.62  # Each cell represents 3 in
 occupancy_grid = np.zeros((MAP_SIZE, MAP_SIZE))  # Initialize occupancy grid
+#arduino = serial.Serial(port='COM6', baudrate=115200, timeout=1) 
 
 ser = None
 # ARD_COM = ("/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2", "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2")
-ARD_COM = ("COM5", "COM5")
+ARD_COM = ("COM6", "COM6")
 tryCom = 0
+
+def moveRobot(angle: int , direction = "forward"):
+   
+    command = str(angle) + ":" + direction
+    ser.write((command + "\n").encode())  # Send command followed by newline
+    print(f"Sent: {command}")
+    
 
 
 def connectArd():
@@ -39,6 +47,9 @@ def connectArd():
         else:
             tryInit = False
 
+
+def ahead(angle):
+    pass    
 
 def readStream():
     data = ser.readline().decode()#.strip()  # Read and decode
@@ -123,17 +134,19 @@ def readStream():
 
 def main():
     #plt.ion() 
-    
     while(True):
         data = readStream()
         if data[0] == True:
             for i in data:        
                 print(str(i) + ', ', end='')
             print()
-        slam.updateOccupancyGridUltrasonic()
-        slam.updateIrGrid()
-        slam.updateRobotPosition()
-        slam.updateLCD()
+        # slam.updateOccupancyGridUltrasonic()
+        # slam.updateIrGrid()
+        # slam.updateRobotPosition()
+        # slam.updateLCD()
+        print("forward")
+        moveRobot(90, "forward")
+        time.sleep(1)
         
         
         
@@ -148,7 +161,7 @@ while True:
     except KeyboardInterrupt:
         exit(130)
 
-    except:
-        print("attempting reconnect to " + ARD_COM)
+    except serial.SerialException:
+        print("attempting reconnect to " + ARD_COM[tryCom])
         ser.close()
         connectArd()
