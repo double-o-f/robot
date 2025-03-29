@@ -45,7 +45,7 @@ def readStream():
         AG = None #ang
         DF = None #dist front
         DP = None #dist pan
-        TR = None #amb temp
+        TP = None #amb temp
         TO = None #obj temp
         YA = None #yaw
 
@@ -73,21 +73,13 @@ def readStream():
                 DP = None
             #print(DP)
 
-        TR0 = data.find("TR:")
-        TR1 = data.find(":TR")
-        if TR0 != -1 and TR1 != -1:
-            TR = float(data[TR0 + 3:TR1])
-            if math.isnan(TR):
-                TR = None
-            #print(TR)
-
-        TO0 = data.find("TO:")
-        TO1 = data.find(":TO")
-        if TO0 != -1 and TO1 != -1:
-            TO = float(data[TO0 + 3:TO1])
-            if math.isnan(TO):
-                TO = None
-            #print(TO) 
+        TP0 = data.find("TP:")
+        TP1 = data.find(":TP")
+        if TP0 != -1 and TP1 != -1:
+            TP = float(data[TP0 + 3:TP1])
+            if math.isnan(TP):
+                TP = None
+            #print(TP)
 
         YA0 = data.find("YA:")
         YA1 = data.find(":YA")
@@ -95,9 +87,9 @@ def readStream():
             YA = int(data[YA0 + 3:YA1])
             #print(YA) 
 
-        return (True, AG, DF, DP, TR, TO, YA)
-    return (False, None, None, None, None, None, None)
-   #return (was bus read, survo angle, front ultrasonic, survo ultrasonic, ambient temp, obj temp, yaw)
+        return (True, AG, DF, DP, TP, YA)
+    return (False, None, None, None, None, None)
+   #return (was bus read, survo angle, front ultrasonic, survo ultrasonic, temp, yaw)
    #None means read error
 
 

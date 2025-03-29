@@ -4,7 +4,8 @@
 #include <Adafruit_MLX90614.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
-
+#include <DHT.h>
+#include <DHT_U.h>
 
 
 // --------- Function Prototypes --------- //
@@ -56,7 +57,7 @@ unsigned long previousTime = 0;
 float gyroZOffset = 0;
 
 // ir sensor
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+//Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 
 // for turning and orientation
@@ -64,6 +65,10 @@ Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 int target_angle = 20;  // 20 for testing
 int robot_angle = 0;   // i think implementation is on connor computer
 
+const int DHT_PIN = 19;
+#define DHT_TYPE DHT22
+
+DHT_Unified dht(DHT_PIN, DHT_TYPE);
 
 
 // --------- Setup --------- //
@@ -94,6 +99,7 @@ void setup() {
   mpu.begin(); //this line likes to cause hang
   calibrateGyro();
 
+  dht.begin(); // initialize the DHT22 sensor
   // can try different range for more accurate readings (2-16)
   // mpu.setAccelerometerRange(MPU6050_RANGE_8_G); // not need if no use acceleromter
 
@@ -426,15 +432,20 @@ void trnRight() {
 }
 
 
+float getTemp() {
+  sensors_event_t event;
+  dht.temperature().getEvent(&event);
+  return (event.temperature);
+}
+
+
 void sendData(){
 
   String data = ("AG:" + String(radarAngle)                                  + ":AG-" + 
                  "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
                  "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
-                 //"TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
-                 //"TO:" + String(mlx.readObjectTempC())                       + ":TO-" +
+                 "TP:" + String(getTemp())                                   + ":TP-" +
                  "YA:" + String(int(getYawAngle() - gyroZOffset))            + ":YA-");
-
   Serial.println(data);
 
 //   sensors_event_t a, g, temp;
