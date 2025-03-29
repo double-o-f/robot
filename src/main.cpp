@@ -40,11 +40,11 @@ float UR_distance;
 
 
 // Wheel Motors
-const int R_WHEEL_SPEED = 6;
+const int L_WHEEL_SPEED = 6;
 const int L_WHEEL_IN1 = 22;
 const int L_WHEEL_IN2 = 23;
 
-const int L_WHEEL_SPEED = 7;
+const int R_WHEEL_SPEED = 7;
 const int R_WHEEL_IN1 = 24;
 const int R_WHEEL_IN2 = 25;
 
@@ -85,6 +85,9 @@ void setup() {
 
   // Define wheel motor pins
   pinMode(R_WHEEL_SPEED, OUTPUT);
+  pinMode(R_WHEEL_IN1, OUTPUT);
+  pinMode(R_WHEEL_IN2, OUTPUT);
+  pinMode(L_WHEEL_SPEED, OUTPUT);
   pinMode(L_WHEEL_IN1, OUTPUT);
   pinMode(L_WHEEL_IN2, OUTPUT);
 
@@ -132,15 +135,13 @@ void turnToAngle(int target_angle, String direction) {
 
   if (diff > 0) {
     // turn right with left wheel faster
-    analogWrite(R_WHEEL_SPEED, 20); 
+    analogWrite(R_WHEEL_SPEED, 75); 
     analogWrite(L_WHEEL_SPEED, 255);
-    Serial.println("turning right");
-
   } 
   else if (diff < 0) {
     // turn left with right wheel faster
     analogWrite(R_WHEEL_SPEED, 255);  
-    analogWrite(L_WHEEL_SPEED, 20);
+    analogWrite(L_WHEEL_SPEED, 75);
   }
   else {
     // go straight in forward or back direction
@@ -165,7 +166,7 @@ void ESCAPE() {
   digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
   digitalWrite(R_WHEEL_IN2, HIGH);
   analogWrite(L_WHEEL_SPEED, 255);
-  delay(5 + (rand() % 6));
+  delay((5 + (rand() % 6)) * 1000);
 
 }
 
@@ -173,7 +174,8 @@ void ESCAPE() {
 
 void loop() {
 
-  turnToAngle(target_angle, "forward");
+  ESCAPE();
+  //turnToAngle(target_angle, "forward");
 
 }
 
