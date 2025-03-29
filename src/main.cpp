@@ -195,7 +195,7 @@ void recieveData(){
   }
   int angle = command.substring(colonIndex + 1).toInt();
   if(getYawAngle() -3 <= angle && getYawAngle() + 3 >= angle){}
-  else{turnToAngle(angle);}
+  else{turnToAngle(angle, direction);}
 
   Serial.println("moved" + direction + "to" + angle);
   
@@ -204,10 +204,10 @@ void recieveData(){
 
 void loop() {
 
-  ESCAPE();
+  //ESCAPE();
   //turnToAngle(target_angle, "forward");
 
-}
+
 
 
 
