@@ -27,10 +27,10 @@ void forward(int);
 // radar servo (RS)
 Servo radarServo;
 const int RS_PIN = 10;
-const int RS_ANGLE_MIN = 0;
-const int RS_ANGLE_MAX = 180;
-int RS_ANGLE_INTERVAL = 2;
-int radarAngle = 90;  // used to keep track of radar servo pos
+const int RS_ANGLE_MIN = 40;
+const int RS_ANGLE_MAX = 80;
+int RS_ANGLE_INTERVAL = 1;
+int radarAngle = 60;  // used to keep track of radar servo pos
 
 
 // ultrasonic at front of robot
@@ -89,7 +89,12 @@ void setup() {
 
   // define servo pins
   radarServo.attach(RS_PIN);
-  radarServo.write(radarAngle); // set radar to 90 to start (straight ahead)
+  //radarServo.write(radarAngle); // set radar to 90 to start (straight ahead)
+  //delay(1000);
+  radarServo.write(RS_ANGLE_MIN);
+  delay(250);
+  //radarServo.write(30);
+  //delay(3000);
 
 
   // Define wheel motor pins
@@ -190,6 +195,7 @@ void ESCAPE() {
 
 int robot_angle = 0;
 int trn = 1;
+bool fuck2 = true;
 
 void loop() {
     float lowDist = INFINITY;
@@ -206,9 +212,11 @@ void loop() {
         Serial.println(robot_angle);
 
 
-        if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN) {
-            RS_ANGLE_INTERVAL = -RS_ANGLE_INTERVAL;
-            forward(1000 * lowDist);
+        if (((radarAngle > RS_ANGLE_MAX) && fuck2) || ((radarAngle < RS_ANGLE_MIN) && !fuck2)) {
+
+            fuck2 = !fuck2;
+            forward(500 * lowDist);
+            delay(1000);
             
             if (trn == 0) {
                 turn(45);
@@ -244,8 +252,15 @@ void loop() {
         if (fuck < lowDist) {
             lowDist = fuck;
         }
+
+        if (fuck2) {
+          radarAngle += RS_ANGLE_INTERVAL;
+        }
+        else {
+          radarAngle -= RS_ANGLE_INTERVAL;
+        }
         radarServo.write(radarAngle);
-        radarAngle += RS_ANGLE_INTERVAL;
+        delay(1);
     }
     
 
@@ -337,10 +352,16 @@ void calibrateGyro() {
 
 void turn(int angle) {
 
-  int initial_angle = robot_angle;
+  int target_angle = robot_angle + angle;
+  if (angle > 0 && target_angle > 360) {
+    target_angle = target_angle - 360;
+  }
+  else if (angle < 0 && target_angle < 0) {
+    target_angle = 360 + target_angle;
+  }
 
   if (angle > 0) {
-    while (robot_angle < (initial_angle + angle)) {
+    while (robot_angle < target_angle) {
         robot_angle = getYawAngle();
         digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
         digitalWrite(L_WHEEL_IN2, LOW); 
@@ -352,7 +373,7 @@ void turn(int angle) {
     }
   }
   else {
-    while (robot_angle > (initial_angle + angle)) {
+    while (robot_angle > target_angle) {
         robot_angle = getYawAngle();
         digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
         digitalWrite(L_WHEEL_IN2, HIGH); 
