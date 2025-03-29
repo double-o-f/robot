@@ -22,6 +22,8 @@ float getTemp();
 
 void turn(int);
 void forward(int);
+void gohome();
+void checkStuck();
 // --------- Variables --------- //
 
 // radar servo (RS)
@@ -38,10 +40,12 @@ const int UF_ECHO_PIN = 29;
 const int UF_TRIG_PIN = 28;
 float UF_distance;
 
-// ultrasonic radar
-const int UR_ECHO_PIN = 31;
-const int UR_TRIG_PIN = 30;
-float UR_distance;
+// ultrasonic at back
+const int UB_ECHO_PIN = 31;
+const int UB_TRIG_PIN = 30;
+float UB_distance;
+
+
 
 
 // Wheel Motors
@@ -67,23 +71,25 @@ float gyroZOffset = 0;
 // for turning and orientation
 // global target angle, gets updated by pi slam algorithm, robot moves as data is still being communicated
 int target_angle = 20;  // 20 for testing
+String direction = "forward";
 // int robot_angle = 0;   // i think implementation is on connor computer
 
-const int DHT_PIN = 19;
-#define DHT_TYPE DHT22
+// const int DHT_PIN = 19;
+// #define DHT_TYPE DHT22
 
-DHT_Unified dht(DHT_PIN, DHT_TYPE);
+// DHT_Unified dht(DHT_PIN, DHT_TYPE);
 
 
 // --------- Setup --------- //
 
 void setup() {
-  
   Serial.begin(115200);
+  Serial.println("setup started");
+  
   
   // set sensor pins
-  pinMode(UR_TRIG_PIN, OUTPUT);
-  pinMode(UR_ECHO_PIN, INPUT);
+  pinMode(UB_TRIG_PIN, OUTPUT);
+  pinMode(UB_ECHO_PIN, INPUT);
   pinMode(UF_TRIG_PIN, OUTPUT);
   pinMode(UF_ECHO_PIN, INPUT);
 
@@ -102,12 +108,21 @@ void setup() {
   pinMode(L_WHEEL_IN1, OUTPUT);
   pinMode(L_WHEEL_IN2, OUTPUT);
 
+  pinMode(L_WHEEL_SPEED, OUTPUT);
+  pinMode(R_WHEEL_IN1, OUTPUT);
+  pinMode(R_WHEEL_IN2, OUTPUT);
+
+
+  Serial.println("setup mpu");
+
   mpu.begin(); //this line likes to cause hang
   calibrateGyro();
 
-  dht.begin(); // initialize the DHT22 sensor
+  // dht.begin(); // initialize the DHT22 sensor
   // can try different range for more accurate readings (2-16)
   // mpu.setAccelerometerRange(MPU6050_RANGE_8_G); // not need if no use acceleromter
+
+  Serial.println("setup complete");
 
 }
 
@@ -167,21 +182,41 @@ void setup() {
 
 void ESCAPE() {
 
-  digitalWrite(L_WHEEL_IN1, LOW);   // motor reverse
-  digitalWrite(L_WHEEL_IN2, HIGH); 
-  analogWrite(R_WHEEL_SPEED, 255);
-  digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
-  digitalWrite(R_WHEEL_IN2, HIGH);
-  analogWrite(L_WHEEL_SPEED, 255);
-  delay(4000);
-  digitalWrite(L_WHEEL_IN1, HIGH);   // motor reverse
-  digitalWrite(L_WHEEL_IN2, LOW); 
-  analogWrite(R_WHEEL_SPEED, 255);
-  digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
-  digitalWrite(R_WHEEL_IN2, HIGH);
-  analogWrite(L_WHEEL_SPEED, 255);
-  delay(5 + (rand() % 6));
+  stopMotors();
+  delay(2000);
 
+  if (direction == "forward") {
+    digitalWrite(L_WHEEL_IN1, LOW);   // motor reverse
+    digitalWrite(L_WHEEL_IN2, HIGH); 
+    analogWrite(R_WHEEL_SPEED, 255);
+    digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
+    digitalWrite(R_WHEEL_IN2, HIGH);
+    analogWrite(L_WHEEL_SPEED, 255);
+    delay(4000);
+    digitalWrite(L_WHEEL_IN1, HIGH);   // motor reverse
+    digitalWrite(L_WHEEL_IN2, LOW); 
+    analogWrite(R_WHEEL_SPEED, 255);
+    digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
+    digitalWrite(R_WHEEL_IN2, HIGH);
+    analogWrite(L_WHEEL_SPEED, 255);
+    delay(5 + (rand() % 6));
+  }
+  else {
+    digitalWrite(L_WHEEL_IN1, HIGH);   // motor reverse
+    digitalWrite(L_WHEEL_IN2, LOW); 
+    analogWrite(R_WHEEL_SPEED, 255);
+    digitalWrite(R_WHEEL_IN1, HIGH);  // motor reverse
+    digitalWrite(R_WHEEL_IN2, LOW);
+    analogWrite(L_WHEEL_SPEED, 255);
+    delay(4000);
+    digitalWrite(L_WHEEL_IN1, LOW);   // motor reverse
+    digitalWrite(L_WHEEL_IN2, HIGH); 
+    analogWrite(R_WHEEL_SPEED, 255);
+    digitalWrite(R_WHEEL_IN1, HIGH);  // motor reverse
+    digitalWrite(R_WHEEL_IN2, LOW);
+    analogWrite(L_WHEEL_SPEED, 255);
+    delay(5 + (rand() % 6));
+  }
 }
 
 
@@ -192,83 +227,192 @@ void ESCAPE() {
 //  turnToAngle(target_angle, "forward");
 //
 //}
-
 int robot_angle = getYawAngle();
-int trn = 1;
-bool fuck2 = true;
+int count = 0;
 
-void loop() {
-    float lowDist = INFINITY;
+void gohome() {
+
+  count -= 1;
+  robot_angle = getYawAngle();
+  Serial.println(direction);
+
+  if (direction == "forward") {
     
-     
-    robot_angle = getYawAngle();
-    Serial.println(robot_angle);
+    digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+    digitalWrite(L_WHEEL_IN2, LOW); 
+    analogWrite(R_WHEEL_SPEED, 255); 
 
-    //update radar angle
+    digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+    digitalWrite(R_WHEEL_IN2, LOW);  
+    analogWrite(L_WHEEL_SPEED, 255);
+
+  }
+  else {
+    digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
+    digitalWrite(L_WHEEL_IN2, HIGH); 
+    analogWrite(R_WHEEL_SPEED, 255); 
+
+    digitalWrite(R_WHEEL_IN1, LOW);   // R motor backward
+    digitalWrite(R_WHEEL_IN2, HIGH);  
+    analogWrite(L_WHEEL_SPEED, 255);
+  }
+
+
+  while (true)
+  {
+
+    if (calculateDistance(UB_TRIG_PIN, UB_ECHO_PIN) < 18) {
+
+      stopMotors();
+      delay(1000);
+      if (direction == "backward") {
+        direction = "forward";
+        stopMotors();
+        delay(1000);
+        turn(-90);
+        break;
+      }
+
+      else {
+        direction = "backward";
+        stopMotors();
+        delay(1000);
+        turn(-90);
+        break;
+      }
+
+      break;
+    }
+
+
+    if (calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN) < 18) {
+      stopMotors();
+      delay(1000);
+
+      if (direction == "forward") {
+        stopMotors();
+        delay(1000);
+        turn(-90);
+        break;
+      }
+      else {
+        direction == "backwards";
+        stopMotors();
+        delay(1000);
+        turn(-90);
+        break;
+      }
+    }
+  
+  }
+  
+checkStuck();
+
+}
+
+
+
+void loop() { 
+    count += 1;
+    robot_angle = getYawAngle();
+    Serial.println(direction);
+
+    if (direction == "forward") {
+      
+      digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+      digitalWrite(L_WHEEL_IN2, LOW); 
+      analogWrite(R_WHEEL_SPEED, 255); 
+
+      digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+      digitalWrite(R_WHEEL_IN2, LOW);  
+      analogWrite(L_WHEEL_SPEED, 255);
+
+    }
+    else {
+      digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
+      digitalWrite(L_WHEEL_IN2, HIGH); 
+      analogWrite(R_WHEEL_SPEED, 255); 
+
+      digitalWrite(R_WHEEL_IN1, LOW);   // R motor backward
+      digitalWrite(R_WHEEL_IN2, HIGH);  
+      analogWrite(L_WHEEL_SPEED, 255);
+    }
+
+  
     while (true)
     {
-      
-        robot_angle = getYawAngle();
-        Serial.println(robot_angle);
 
+      if (calculateDistance(UB_TRIG_PIN, UB_ECHO_PIN) < 18) {
 
-        if (((radarAngle > RS_ANGLE_MAX) && fuck2) || ((radarAngle < RS_ANGLE_MIN) && !fuck2)) {
-
-            fuck2 = !fuck2;
-            forward(500 * lowDist);
-            delay(1000);
-            
-            if (trn == 0) {
-                turn(0);
+        stopMotors();
+        delay(1000);
+        if (direction == "backward") {
+          direction = "forward";
+          if (count >= 2) {
+            turn(180);
+            while (true) {
+              gohome();
             }
-            else if (trn == 1) {
-                if (calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN) < 16) { //TODO fix dist
-                    delay(5000);
-                    if (getTemp() > 35) {
-                        while(true){Serial.println("temp reached");}
-                    }
-                    turn(90);
-                    robot_angle = getYawAngle();
-                }
-                else {
-                  turn(45);
-                }
-            }
-            else if (trn == 2) {
-              turn(-45);
-            }
-
-            if (trn >= 2) {
-                trn = 0;
-            }
-            else {
-                trn += 1;
-            }
-
-            break;
-        }
-    
-        float fuck = calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN);
-        Serial.println(fuck);
-        if (fuck < lowDist) {
-            lowDist = fuck;
+          }
+          else {
+            turn(90);
+          }
+          break;
         }
 
-        if (fuck2) {
-          radarAngle += RS_ANGLE_INTERVAL;
+        else {
+          direction = "backward";
+          if (count >= 2) {
+            turn(180);
+            while (true) {
+              gohome();
+            }
+          }
+          else {
+            turn(90);
+          }
+          break;
+        }
+
+        break;
+      }
+
+
+      if (calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN) < 18) {
+        stopMotors();
+        delay(1000);
+
+        if (direction == "forward") {
+          if (count >= 2) {
+            turn(180);
+            while (true) {
+              gohome();
+            }
+          }
+          else {
+            turn(90);
+          }
+          break;
         }
         else {
-          radarAngle -= RS_ANGLE_INTERVAL;
+          direction == "backwards";
+          if (count >= 2) {
+            turn(180);
+            while (true) {
+              gohome();
+            }
+          }
+          else {
+            turn(90);
+          }
+          break;
         }
-        radarServo.write(radarAngle);
-        delay(1);
+      }
+    
     }
     
+  checkStuck();
 
-    //setAngle(20);
-    //delay(1000);
-    //setAngle(190);
-    //delay(1000);
 }
 
 
@@ -350,7 +494,7 @@ void calibrateGyro() {
 
 
 
-
+// can turn forward or backward
 void turn(int angle) {
 
   int target_angle = robot_angle + angle;
@@ -364,25 +508,50 @@ void turn(int angle) {
   if (angle > 0) {
     while (robot_angle < target_angle) {
         robot_angle = getYawAngle();
-        digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
-        digitalWrite(L_WHEEL_IN2, LOW); 
-        analogWrite(R_WHEEL_SPEED, 255); 
-    
-        digitalWrite(R_WHEEL_IN1, LOW);   // R motor backward
-        digitalWrite(R_WHEEL_IN2, HIGH);  
-        analogWrite(L_WHEEL_SPEED, 255);
+        
+        if (direction == "forward") {
+          digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+          digitalWrite(L_WHEEL_IN2, LOW); 
+          analogWrite(R_WHEEL_SPEED, 255); 
+      
+          digitalWrite(R_WHEEL_IN1, LOW);   // R motor backward
+          digitalWrite(R_WHEEL_IN2, HIGH);  
+          analogWrite(L_WHEEL_SPEED, 150);
+        }
+        else {
+          digitalWrite(L_WHEEL_IN1, LOW);  // L motor forward
+          digitalWrite(L_WHEEL_IN2, HIGH); 
+          analogWrite(R_WHEEL_SPEED, 255); 
+      
+          digitalWrite(R_WHEEL_IN1, HIGH);   // R motor backward
+          digitalWrite(R_WHEEL_IN2, LOW);  
+          analogWrite(L_WHEEL_SPEED, 150);
+        }
     }
   }
   else {
     while (robot_angle > target_angle) {
         robot_angle = getYawAngle();
-        digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
-        digitalWrite(L_WHEEL_IN2, HIGH); 
-        analogWrite(R_WHEEL_SPEED, 255); 
-    
-        digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
-        digitalWrite(R_WHEEL_IN2, LOW);  
-        analogWrite(L_WHEEL_SPEED, 255);
+
+        if (direction == "forward") {
+          digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
+          digitalWrite(L_WHEEL_IN2, HIGH); 
+          analogWrite(R_WHEEL_SPEED, 150); 
+      
+          digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+          digitalWrite(R_WHEEL_IN2, LOW);  
+          analogWrite(L_WHEEL_SPEED, 255);
+        }
+        else {
+          digitalWrite(L_WHEEL_IN1, HIGH);  // L motor backward
+          digitalWrite(L_WHEEL_IN2, LOW); 
+          analogWrite(R_WHEEL_SPEED, 150); 
+      
+          digitalWrite(R_WHEEL_IN1, LOW);   // R motor forward
+          digitalWrite(R_WHEEL_IN2, HIGH);  
+          analogWrite(L_WHEEL_SPEED, 255);
+
+        }
     }
   }
 
@@ -406,10 +575,45 @@ void forward(int time) {
 
 
 
+void backward(int time) {
+
+  digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
+  digitalWrite(L_WHEEL_IN2, HIGH); 
+  analogWrite(R_WHEEL_SPEED, 255); 
+
+  digitalWrite(R_WHEEL_IN1, LOW);   // R motor backward
+  digitalWrite(R_WHEEL_IN2, HIGH);  
+  analogWrite(L_WHEEL_SPEED, 255);
+
+  delay(time); // in ms
+  stopMotors();
+
+}
+
+
+
 
 
 
 // --------- Functions --------- //
+
+void checkStuck() {
+
+  // unsigned long currentTime = millis(); // Get current time in milliseconds
+  // float deltaTime = (currentTime - previousTime) / 1000.0; // Convert to seconds
+  // previousTime = currentTime;
+
+  sensors_event_t accel, gyro, temp;
+
+  mpu.getEvent(&accel, &gyro, &temp); // Retrieve sensor events
+
+  float ACCEL_THRESHOLD = 0.2;
+  if ((-ACCEL_THRESHOLD < accel.acceleration.x && accel.acceleration.x < ACCEL_THRESHOLD) && (-ACCEL_THRESHOLD < accel.acceleration.y && accel.acceleration.y < ACCEL_THRESHOLD)) {
+    ESCAPE();
+  }
+
+
+}
 
 // return mpu6050 angle
 float getYawAngle() {
@@ -559,19 +763,19 @@ void trnRight() {
 }
 
 
-float getTemp() {
-  sensors_event_t event;
-  dht.temperature().getEvent(&event);
-  return (event.temperature);
-}
+// float getTemp() {
+//   sensors_event_t event;
+//   dht.temperature().getEvent(&event);
+//   return (event.temperature);
+// }
 
 
 void sendData(){
 
   String data = ("AG:" + String(radarAngle)                                  + ":AG-" + 
                  "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
-                 "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
-                 "TP:" + String(getTemp())                                   + ":TP-" +
+                 "DP:" + String(calculateDistance(UB_TRIG_PIN, UB_ECHO_PIN)) + ":DP-" + 
+                 //"TP:" + String(getTemp())                                   + ":TP-" +
                  "YA:" + String(int(getYawAngle() - gyroZOffset))            + ":YA-");
   Serial.println(data);
 
