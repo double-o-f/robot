@@ -10,12 +10,14 @@
 // --------- Function Prototypes --------- //
 void checkQuit();
 float calculateDistance(const int, const int);
-void sendData(int);
+void sendData();
 void rotateMotor(const int, const int, const int);
 void stopMotors();
 
 float getYawAngle();
 void calibrateGyro();
+void mvForward();
+void mvBackward();
 void setAngle(int);
 // --------- Variables --------- //
 
@@ -47,7 +49,7 @@ const int WHEEL_IN2 = 23;
 const int WHEEL_ENB = 7;
 const int WHEEL_IN3 = 24;
 const int WHEEL_IN4 = 25;
-
+String direction = "forward";
 
 // MPU6050
 Adafruit_MPU6050 mpu;
@@ -68,18 +70,18 @@ void setup() {
   Serial.begin(115200);
   Wire.begin();
 
-  Serial.println("Scanning...");
-  for (byte address = 1; address < 127; address++) {
-    Serial.print("Trying Address: ");
-    Serial.println(address);
-    Wire.beginTransmission(address);
-    if (Wire.endTransmission() == 0) {
-      Serial.print("Found device at: 0x");
-      Serial.println(address, HEX);
-      delay(10);
-    }
-  }
-  Serial.println("Scan complete.");
+  // Serial.println("Scanning...");
+  // for (byte address = 1; address < 127; address++) {
+  //   Serial.print("Trying Address: ");
+  //   Serial.println(address);
+  //   Wire.beginTransmission(address);
+  //   if (Wire.endTransmission() == 0) {
+  //     Serial.print("Found device at: 0x");
+  //     Serial.println(address, HEX);
+  //     delay(10);
+  //   }
+  // }
+  // Serial.println("Scan complete.");
 
   
   // set sensor pins
@@ -148,32 +150,41 @@ void turnToAngle(int target_angle) {
 
 
 
+void recieveData(){
+  String command = Serial.readStringUntil('\n');
+  int colonIndex = command.indexOf(':');
+  direction = command.substring(0, colonIndex);
+  Serial.println("forward2");
+
+  if (direction == "backward"){
+    mvBackward();
+  }
+  else{
+    mvForward();
+  }
+  int angle = command.substring(colonIndex + 1).toInt();
+  if(getYawAngle() -3 <= angle && getYawAngle() + 3 >= angle){}
+  else{turnToAngle(angle);}
+
+  Serial.println("moved" + direction + "to" + angle);
+  
+
+}  
+
 void loop() {
+  sendData(); //check all sensors and send data to pi
+  Serial.println("after");
 
-  turnToAngle(target_angle);
+  //update radar angle
+  
+  if(Serial.available() > 0){
+    recieveData();
+  }
+  else{Serial.println("no data");}
 
-
-
-
-
-
-
-}
-
-
-
-void loop() {
-  //sendData(); //check all sensors and send data to pi
-
-  // update radar angle
-  // if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN)
-  //   RS_ANGLE_INTERVAL = -RS_ANGLE_INTERVAL;
-
-  // radarAngle += RS_ANGLE_INTERVAL;
-  setAngle(20);
-  delay(1000);
-  setAngle(190);
-  delay(1000);
+  if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN)
+    RS_ANGLE_INTERVAL = -RS_ANGLE_INTERVAL;
+  radarAngle += RS_ANGLE_INTERVAL;
 }
 
 
