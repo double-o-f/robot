@@ -63,12 +63,23 @@ Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 // --------- Setup --------- //
 
-// runs once
-
-
 void setup() {
   
   Serial.begin(115200);
+  Wire.begin();
+
+  Serial.println("Scanning...");
+  for (byte address = 1; address < 127; address++) {
+    Serial.print("Trying Address: ");
+    Serial.println(address);
+    Wire.beginTransmission(address);
+    if (Wire.endTransmission() == 0) {
+      Serial.print("Found device at: 0x");
+      Serial.println(address, HEX);
+      delay(10);
+    }
+  }
+  Serial.println("Scan complete.");
 
   
   // set sensor pins
@@ -92,6 +103,8 @@ void setup() {
 
   // can try different range for more accurate readings (2-16)
   // mpu.setAccelerometerRange(MPU6050_RANGE_8_G); // not need if no use acceleromter
+
+
 
 }
 
@@ -259,7 +272,7 @@ float getYawAngle() {
 
   float corrected_gyro = gyro.gyro.z - gyroZOffset;
 
-  yawAngle += corrected_gyro * deltaTime * (180/PI);
+  yawAngle -= corrected_gyro * deltaTime * (180/PI);
   yawAngle = fmod(yawAngle, 360); // Keep within 360 degrees
   if (yawAngle < 0) yawAngle += 360;
 
