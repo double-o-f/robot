@@ -4,7 +4,8 @@
 #include <Adafruit_MLX90614.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
-
+#include <DHT.h>
+#include <DHT_U.h>
 
 
 // --------- Function Prototypes --------- //
@@ -42,13 +43,13 @@ float UR_distance;
 
 
 // Wheel Motors
-const int WHEEL_ENA = 6;
-const int WHEEL_IN1 = 22;
-const int WHEEL_IN2 = 23;
+const int L_WHEEL_SPEED = 6;
+const int L_WHEEL_IN1 = 22;
+const int L_WHEEL_IN2 = 23;
 
-const int WHEEL_ENB = 7;
-const int WHEEL_IN3 = 24;
-const int WHEEL_IN4 = 25;
+const int R_WHEEL_SPEED = 7;
+const int R_WHEEL_IN1 = 24;
+const int R_WHEEL_IN2 = 25;
 String direction = "forward";
 
 // MPU6050
@@ -58,9 +59,18 @@ unsigned long previousTime = 0;
 float gyroZOffset = 0;
 
 // ir sensor
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+//Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 
+// for turning and orientation
+// global target angle, gets updated by pi slam algorithm, robot moves as data is still being communicated
+int target_angle = 20;  // 20 for testing
+int robot_angle = 0;   // i think implementation is on connor computer
+
+const int DHT_PIN = 19;
+#define DHT_TYPE DHT22
+
+DHT_Unified dht(DHT_PIN, DHT_TYPE);
 
 
 // --------- Setup --------- //
@@ -68,21 +78,6 @@ Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 void setup() {
   
   Serial.begin(115200);
-  Wire.begin();
-
-  // Serial.println("Scanning...");
-  // for (byte address = 1; address < 127; address++) {
-  //   Serial.print("Trying Address: ");
-  //   Serial.println(address);
-  //   Wire.beginTransmission(address);
-  //   if (Wire.endTransmission() == 0) {
-  //     Serial.print("Found device at: 0x");
-  //     Serial.println(address, HEX);
-  //     delay(10);
-  //   }
-  // }
-  // Serial.println("Scan complete.");
-
   
   // set sensor pins
   pinMode(UR_TRIG_PIN, OUTPUT);
@@ -96,57 +91,93 @@ void setup() {
 
 
   // Define wheel motor pins
-  pinMode(WHEEL_ENA, OUTPUT);
-  pinMode(WHEEL_IN1, OUTPUT);
-  pinMode(WHEEL_IN2, OUTPUT);
+  pinMode(R_WHEEL_SPEED, OUTPUT);
+  pinMode(R_WHEEL_IN1, OUTPUT);
+  pinMode(R_WHEEL_IN2, OUTPUT);
+  pinMode(L_WHEEL_SPEED, OUTPUT);
+  pinMode(L_WHEEL_IN1, OUTPUT);
+  pinMode(L_WHEEL_IN2, OUTPUT);
 
   mpu.begin(); //this line likes to cause hang
   calibrateGyro();
 
+  dht.begin(); // initialize the DHT22 sensor
   // can try different range for more accurate readings (2-16)
   // mpu.setAccelerometerRange(MPU6050_RANGE_8_G); // not need if no use acceleromter
 
-
-
 }
 
-
-
-// maybe
-// global target angle, gets updated by pi slam algorithm, robot moves as data is still being communicated
-int target_angle = 20;  // 20 for testing
-int robot_angle = 0;   // i think implementation is on connor computer
 
 // different implementation of setAngle()
-void turnToAngle(int target_angle) {
+void turnToAngle(int target_angle, String direction) {
 
   robot_angle = getYawAngle();
+  Serial.print("Target: ");
+  Serial.print(target_angle);
+  Serial.print("  Robot: ");
+  Serial.println(robot_angle);
 
-  if (robot_angle < target_angle) {
-    // turn right with left wheel faster
-    digitalWrite(WHEEL_IN1, HIGH);  // Motor A forward
-    digitalWrite(WHEEL_IN2, LOW);   // Motor A not reverse
-    analogWrite(WHEEL_ENA, 255);
+  int diff = target_angle - robot_angle;
+  if (diff > 180) { 
+    diff -= 360;  // Shorter path backward
+  } else if (diff < -180) {
+      diff += 360;  // Shorter path forward
+  }
 
-    digitalWrite(WHEEL_IN3, LOW);   // Motor B not forward
-    digitalWrite(WHEEL_IN4, HIGH);  // Motor B reverse
-    analogWrite(WHEEL_ENB, 20);
 
-  } 
-  else if (robot_angle > target_angle) {
-    // turn left with right wheel faster
-    digitalWrite(WHEEL_IN1, LOW);   // Motor A not forward
-    digitalWrite(WHEEL_IN2, HIGH);  // Motor A reverse
-    analogWrite(WHEEL_ENA, 20);
+  if (direction == "forward") {
+    digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+    digitalWrite(L_WHEEL_IN2, LOW); 
 
-    digitalWrite(WHEEL_IN3, HIGH);  // Motor B forward
-    digitalWrite(WHEEL_IN4, LOW);   
-    analogWrite(WHEEL_ENB, 255);
+    digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+    digitalWrite(R_WHEEL_IN2, LOW);  
   }
   else {
+    digitalWrite(L_WHEEL_IN1, LOW);   // motor reverse
+    digitalWrite(L_WHEEL_IN2, HIGH); 
 
+    digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
+    digitalWrite(R_WHEEL_IN2, HIGH);  
+  }
+
+
+  if (diff > 0) {
+    // turn right with left wheel faster
+    analogWrite(R_WHEEL_SPEED, 75); 
+    analogWrite(L_WHEEL_SPEED, 255);
+  } 
+  else if (diff < 0) {
+    // turn left with right wheel faster
+    analogWrite(R_WHEEL_SPEED, 255);  
+    analogWrite(L_WHEEL_SPEED, 75);
+  }
+  else {
+    // go straight in forward or back direction
+    analogWrite(R_WHEEL_SPEED, 255);  
+    analogWrite(L_WHEEL_SPEED, 255);
   }
 }
+
+
+void ESCAPE() {
+
+  digitalWrite(L_WHEEL_IN1, LOW);   // motor reverse
+  digitalWrite(L_WHEEL_IN2, HIGH); 
+  analogWrite(R_WHEEL_SPEED, 255);
+  digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
+  digitalWrite(R_WHEEL_IN2, HIGH);
+  analogWrite(L_WHEEL_SPEED, 255);
+  delay(4000);
+  digitalWrite(L_WHEEL_IN1, HIGH);   // motor reverse
+  digitalWrite(L_WHEEL_IN2, LOW); 
+  analogWrite(R_WHEEL_SPEED, 255);
+  digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
+  digitalWrite(R_WHEEL_IN2, HIGH);
+  analogWrite(L_WHEEL_SPEED, 255);
+  delay((5 + (rand() % 6)) * 1000);
+
+}
+
 
 
 
@@ -172,6 +203,16 @@ void recieveData(){
 }  
 
 void loop() {
+
+  ESCAPE();
+  //turnToAngle(target_angle, "forward");
+
+}
+
+
+
+// void loop() {
+//   //sendData(); //check all sensors and send data to pi
   sendData(); //check all sensors and send data to pi
   Serial.println("after");
 
@@ -200,29 +241,29 @@ void calibrateGyro() {
   gyroZOffset /= numSamples;
 }
 
-void setAngle(int angle){
-  int yaw = getYawAngle();
-  while(getYawAngle() != angle){
+// void setAngle(int angle){
+//   int yaw = getYawAngle();
+//   while(getYawAngle() != angle){
     
-    if (angle < 180){
-      digitalWrite(WHEEL_IN1, HIGH);  // Motor A forward
-      digitalWrite(WHEEL_IN2, LOW);   // Motor A not reverse
+//     if (angle < 180){
+//       digitalWrite(L_WHEEL_IN1, HIGH);  // Motor A forward
+//       digitalWrite(L_WHEEL_IN2, LOW);   // Motor A not reverse
 
-      digitalWrite(WHEEL_IN3, LOW);   // Motor B not forward
-      digitalWrite(WHEEL_IN4, HIGH);  // Motor B reverse
-    }
+//       digitalWrite(R_WHEEL_IN1, LOW);   // Motor B not forward
+//       digitalWrite(R_WHEEL_IN2, HIGH);  // Motor B reverse
+//     }
 
-    if(angle >= 180){
-      digitalWrite(WHEEL_IN1, LOW);   // Motor A not forward
-      digitalWrite(WHEEL_IN2, HIGH);  // Motor A reverse
+//     if(angle >= 180){
+//       digitalWrite(L_WHEEL_IN1, LOW);   // Motor A not forward
+//       digitalWrite(L_WHEEL_IN2, HIGH);  // Motor A reverse
   
-      digitalWrite(WHEEL_IN3, HIGH);  // Motor B forward
-      digitalWrite(WHEEL_IN4, LOW);   
-    }
-    analogWrite(WHEEL_ENA, 255);
-    analogWrite(WHEEL_ENB, 255);
-  }
-}
+//       digitalWrite(R_WHEEL_IN1, HIGH);  // Motor B forward
+//       digitalWrite(R_WHEEL_IN2, LOW);   
+//     }
+//     analogWrite(R_WHEEL_SPEED, 255);
+//     analogWrite(L_WHEEL_SPEED, 255);
+//   }
+// }
 
 
 // // --------- Main Loop --------- //
@@ -231,8 +272,8 @@ void setAngle(int angle){
 
   
 
-//   rotateMotor(WHEEL_ENA, WHEEL_IN1, WHEEL_IN2);
-//   rotateMotor(WHEEL_ENB, WHEEL_IN3, WHEEL_IN4);
+//   rotateMotor(R_WHEEL_SPEED, L_WHEEL_IN1, L_WHEEL_IN2);
+//   rotateMotor(L_WHEEL_SPEED, R_WHEEL_IN1, R_WHEEL_IN2);
 //   checkQuit();
 
   
@@ -291,13 +332,13 @@ float getYawAngle() {
 }
 
 void stopMotors() {
-  digitalWrite(WHEEL_IN1, LOW);
-  digitalWrite(WHEEL_IN2, LOW);
-  analogWrite(WHEEL_ENA, 0);
+  digitalWrite(L_WHEEL_IN1, LOW);
+  digitalWrite(L_WHEEL_IN2, LOW);
+  analogWrite(R_WHEEL_SPEED, 0);
 
-  digitalWrite(WHEEL_IN3, LOW);
-  digitalWrite(WHEEL_IN4, LOW);
-  analogWrite(WHEEL_ENB, 0);
+  digitalWrite(R_WHEEL_IN1, LOW);
+  digitalWrite(R_WHEEL_IN2, LOW);
+  analogWrite(L_WHEEL_SPEED, 0);
 }
 
 void rotateMotor(const int EN, const int IN1, const int IN2) {
@@ -330,8 +371,8 @@ void setMotorSpeeds(int angle) {
 
 
   // for above implementation
-  // analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
-  // analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+  // analogWrite(R_WHEEL_SPEED, 255); // Set speed (0-255)
+  // analogWrite(L_WHEEL_SPEED, 255); // Set speed (0-255)
 
 }
 
@@ -341,11 +382,11 @@ void move(String direction, int angle) {
   if (direction == "foward") {
 
     // makes motors go in forward direction
-    digitalWrite(WHEEL_IN1, HIGH); // IN1 is 
-    digitalWrite(WHEEL_IN2, LOW);
+    digitalWrite(L_WHEEL_IN1, HIGH); // IN1 is 
+    digitalWrite(L_WHEEL_IN2, LOW);
 
-    digitalWrite(WHEEL_IN3, LOW);
-    digitalWrite(WHEEL_IN4, HIGH);
+    digitalWrite(R_WHEEL_IN1, LOW);
+    digitalWrite(R_WHEEL_IN2, HIGH);
 
     // take the angle and determine how much the right vs left motors should turn
     setMotorSpeeds(angle);
@@ -356,11 +397,11 @@ void move(String direction, int angle) {
   else if (direction == "reverse") {
 
     // makes motors go in reverse direction
-    digitalWrite(WHEEL_IN1, LOW);
-    digitalWrite(WHEEL_IN2, HIGH);
+    digitalWrite(L_WHEEL_IN1, LOW);
+    digitalWrite(L_WHEEL_IN2, HIGH);
 
-    digitalWrite(WHEEL_IN3, HIGH);
-    digitalWrite(WHEEL_IN4, LOW);
+    digitalWrite(R_WHEEL_IN1, HIGH);
+    digitalWrite(R_WHEEL_IN2, LOW);
 
     // take the angle and determine how much the right vs left motors should turn
     setMotorSpeeds(angle);
@@ -378,43 +419,50 @@ void move(String direction, int angle) {
 
 
 void mvForward() {
-  digitalWrite(WHEEL_IN1, HIGH);
-  digitalWrite(WHEEL_IN2, LOW);
-  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+  digitalWrite(L_WHEEL_IN1, HIGH);
+  digitalWrite(L_WHEEL_IN2, LOW);
+  analogWrite(R_WHEEL_SPEED, 255); // Set speed (0-255)
 
-  digitalWrite(WHEEL_IN3, LOW);
-  digitalWrite(WHEEL_IN4, HIGH);
-  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+  digitalWrite(R_WHEEL_IN1, LOW);
+  digitalWrite(R_WHEEL_IN2, HIGH);
+  analogWrite(L_WHEEL_SPEED, 255); // Set speed (0-255)
 }
 
 void mvBackward() {
-  digitalWrite(WHEEL_IN1, LOW);
-  digitalWrite(WHEEL_IN2, HIGH);
-  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+  digitalWrite(L_WHEEL_IN1, LOW);
+  digitalWrite(L_WHEEL_IN2, HIGH);
+  analogWrite(R_WHEEL_SPEED, 255); // Set speed (0-255)
 
-  digitalWrite(WHEEL_IN3, HIGH);
-  digitalWrite(WHEEL_IN4, LOW);
-  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+  digitalWrite(R_WHEEL_IN1, HIGH);
+  digitalWrite(R_WHEEL_IN2, LOW);
+  analogWrite(L_WHEEL_SPEED, 255); // Set speed (0-255)
 }
 
 void trnLeft() {
-  digitalWrite(WHEEL_IN1, LOW);
-  digitalWrite(WHEEL_IN2, HIGH);
-  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+  digitalWrite(L_WHEEL_IN1, LOW);
+  digitalWrite(L_WHEEL_IN2, HIGH);
+  analogWrite(R_WHEEL_SPEED, 255); // Set speed (0-255)
 
-  digitalWrite(WHEEL_IN3, LOW);
-  digitalWrite(WHEEL_IN4, HIGH);
-  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+  digitalWrite(R_WHEEL_IN1, LOW);
+  digitalWrite(R_WHEEL_IN2, HIGH);
+  analogWrite(L_WHEEL_SPEED, 255); // Set speed (0-255)
 }
 
 void trnRight() {
-  digitalWrite(WHEEL_IN1, HIGH);
-  digitalWrite(WHEEL_IN2, LOW);
-  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+  digitalWrite(L_WHEEL_IN1, HIGH);
+  digitalWrite(L_WHEEL_IN2, LOW);
+  analogWrite(R_WHEEL_SPEED, 255); // Set speed (0-255)
 
-  digitalWrite(WHEEL_IN3, HIGH);
-  digitalWrite(WHEEL_IN4, LOW);
-  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+  digitalWrite(R_WHEEL_IN1, HIGH);
+  digitalWrite(R_WHEEL_IN2, LOW);
+  analogWrite(L_WHEEL_SPEED, 255); // Set speed (0-255)
+}
+
+
+float getTemp() {
+  sensors_event_t event;
+  dht.temperature().getEvent(&event);
+  return (event.temperature);
 }
 
 
@@ -423,10 +471,8 @@ void sendData(){
   String data = ("AG:" + String(radarAngle)                                  + ":AG-" + 
                  "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
                  "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
-                 //"TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
-                 //"TO:" + String(mlx.readObjectTempC())                       + ":TO-" +
+                 "TP:" + String(getTemp())                                   + ":TP-" +
                  "YA:" + String(int(getYawAngle() - gyroZOffset))            + ":YA-");
-
   Serial.println(data);
 
 //   sensors_event_t a, g, temp;
