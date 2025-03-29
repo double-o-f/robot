@@ -104,7 +104,7 @@ void loop() {
 
   // radarServo.write(radarAngle);
 
-  sendData(radarAngle);
+  sendData();
 
   // update radar angle
   if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN)
@@ -234,14 +234,14 @@ void rotateMotor(const int ENA, const int IN1, const int IN2) {
 
 }
 
-void sendData(int angle){
+void sendData(){
 
-  String data = ("AG:" + String(angle)                                       + ":AG-" + 
+  String data = ("AG:" + String(radarAngle)                                  + ":AG-" + 
                  "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
                  "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
                  //"TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
                  //"TO:" + String(mlx.readObjectTempC())                       + ":TO-" +
-                 "YA:" + String(int(getYawAngle() - gyroZOffset))                          + ":YA-");
+                 "YA:" + String(int(getYawAngle() - gyroZOffset))            + ":YA-");
 
   Serial.println(data);
 }
