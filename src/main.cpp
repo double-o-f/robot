@@ -433,7 +433,7 @@ void trnRight() {
 float getTemp() {
   sensors_event_t event;
   dht.temperature().getEvent(&event);
-  float (event.temperature);
+  return (event.temperature);
 }
 
 
