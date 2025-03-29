@@ -87,7 +87,7 @@ void setup() {
   pinMode(WHEEL_IN1, OUTPUT);
   pinMode(WHEEL_IN2, OUTPUT);
 
-  mpu.begin();
+  mpu.begin(); //this line likes to cause hang
   calibrateGyro();
   Serial.println(gyroZOffset);
 
@@ -98,20 +98,14 @@ void setup() {
 
 
 
-
-
 void loop() {
-
-  // radarServo.write(radarAngle);
-
-  sendData();
+  sendData(); //check all sensors and send data to pi
 
   // update radar angle
   if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN)
     RS_ANGLE_INTERVAL = -RS_ANGLE_INTERVAL;
 
   radarAngle += RS_ANGLE_INTERVAL;
-
 }
 
 
@@ -215,7 +209,7 @@ void stopMotors() {
   analogWrite(WHEEL_ENB, 0);
 }
 
-void rotateMotor(const int ENA, const int IN1, const int IN2) {
+void rotateMotor(const int EN, const int IN1, const int IN2) {
 
   /*
 
@@ -230,9 +224,51 @@ void rotateMotor(const int ENA, const int IN1, const int IN2) {
   // Rotate motor forward
   digitalWrite(IN1, HIGH);
   digitalWrite(IN2, LOW);
-  analogWrite(ENA, 255); // Set speed (0-255)
+  analogWrite(EN, 255); // Set speed (0-255)
 
 }
+
+
+void mvForward() {
+  digitalWrite(WHEEL_IN1, HIGH);
+  digitalWrite(WHEEL_IN2, LOW);
+  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+
+  digitalWrite(WHEEL_IN3, LOW);
+  digitalWrite(WHEEL_IN4, HIGH);
+  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+}
+
+void mvBackward() {
+  digitalWrite(WHEEL_IN1, LOW);
+  digitalWrite(WHEEL_IN2, HIGH);
+  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+
+  digitalWrite(WHEEL_IN3, HIGH);
+  digitalWrite(WHEEL_IN4, LOW);
+  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+}
+
+void trnLeft() {
+  digitalWrite(WHEEL_IN1, LOW);
+  digitalWrite(WHEEL_IN2, HIGH);
+  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+
+  digitalWrite(WHEEL_IN3, LOW);
+  digitalWrite(WHEEL_IN4, HIGH);
+  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+}
+
+void trnLeft() {
+  digitalWrite(WHEEL_IN1, HIGH);
+  digitalWrite(WHEEL_IN2, LOW);
+  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+
+  digitalWrite(WHEEL_IN3, HIGH);
+  digitalWrite(WHEEL_IN4, LOW);
+  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+}
+
 
 void sendData(){
 
