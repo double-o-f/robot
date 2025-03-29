@@ -328,26 +328,28 @@ int robot_angle = 0;
 
 void turn(int angle) {
 
-    if (angle > 0) {
-        while (robot_angle < (robot_angle + angle))
-            digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
-            digitalWrite(L_WHEEL_IN2, LOW); 
-            analogWrite(R_WHEEL_SPEED, 255); 
-        
-            digitalWrite(R_WHEEL_IN1, LOW);   // R motor backward
-            digitalWrite(R_WHEEL_IN2, HIGH);  
-            analogWrite(L_WHEEL_SPEED, 255);
+  if (angle > 0) {
+    while (robot_angle < (robot_angle + angle)) {
+        digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+        digitalWrite(L_WHEEL_IN2, LOW); 
+        analogWrite(R_WHEEL_SPEED, 255); 
+    
+        digitalWrite(R_WHEEL_IN1, LOW);   // R motor backward
+        digitalWrite(R_WHEEL_IN2, HIGH);  
+        analogWrite(L_WHEEL_SPEED, 255);
     }
-    else {
-        while (robot_angle > (robot_angle + angle))
-            digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
-            digitalWrite(L_WHEEL_IN2, HIGH); 
-            analogWrite(R_WHEEL_SPEED, 255); 
-        
-            digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
-            digitalWrite(R_WHEEL_IN2, LOW);  
-            analogWrite(L_WHEEL_SPEED, 50);
+  }
+  else {
+    while (robot_angle > (robot_angle + angle)) {
+        digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
+        digitalWrite(L_WHEEL_IN2, HIGH); 
+        analogWrite(R_WHEEL_SPEED, 255); 
+    
+        digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+        digitalWrite(R_WHEEL_IN2, LOW);  
+        analogWrite(L_WHEEL_SPEED, 50);
     }
+  }
 
 }
 
