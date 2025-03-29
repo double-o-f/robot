@@ -15,7 +15,7 @@ void rotateMotor(const int, const int, const int);
 void stopMotors();
 
 float getYawAngle();
-
+void calibrateGyro();
 
 // --------- Variables --------- //
 
@@ -53,6 +53,7 @@ const int WHEEL_IN4 = 25;
 Adafruit_MPU6050 mpu;
 float yawAngle = 0;
 unsigned long previousTime = 0;
+float gyroZOffset = 0;
 
 // ir sensor
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
@@ -87,6 +88,8 @@ void setup() {
   pinMode(WHEEL_IN2, OUTPUT);
 
   mpu.begin();
+  calibrateGyro();
+  Serial.println(gyroZOffset);
 
   // can try different range for more accurate readings (2-16)
   // mpu.setAccelerometerRange(MPU6050_RANGE_8_G); // not need if no use acceleromter
@@ -112,6 +115,17 @@ void loop() {
 }
 
 
+
+void calibrateGyro() {
+  const int numSamples = 100;
+  for (int i = 0; i < numSamples; i++) {
+      sensors_event_t accelEvent, gyroEvent, tempEvent;
+      mpu.getEvent(&accelEvent, &gyroEvent, &tempEvent);
+      gyroZOffset += gyroEvent.gyro.z;
+      delay(10); // Wait for sensor to stabilize
+  }
+  gyroZOffset /= numSamples;
+}
 
 
 
@@ -182,7 +196,9 @@ float getYawAngle() {
 
   mpu.getEvent(&accel, &gyro, &temp); // Retrieve sensor events
 
-  yawAngle += gyro.gyro.z * deltaTime * (180/PI);
+  float corrected_gyro = gyro.gyro.z - gyroZOffset;
+
+  yawAngle += corrected_gyro * deltaTime * (180/PI);
   yawAngle = fmod(yawAngle, 360); // Keep within 360 degrees
   if (yawAngle < 0) yawAngle += 360;
 
@@ -225,7 +241,7 @@ void sendData(int angle){
                  "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
                  //"TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
                  //"TO:" + String(mlx.readObjectTempC())                       + ":TO-" +
-                 "YA:" + String(int(getYawAngle()))                          + ":YA-");
+                 "YA:" + String(int(getYawAngle() - gyroZOffset))                          + ":YA-");
 
   Serial.println(data);
 }
