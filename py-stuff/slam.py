@@ -10,7 +10,7 @@ import time
 import serial
 import math
 from heapq import heappop, heappush
-from astar import a_star_search
+
 
 
 # # LCD intialization
@@ -174,29 +174,29 @@ def updateIrGrid():
             ir_grid[grid_y][grid_x] = alpha  # Store transparency level in the grid
 
 
-# def render_ir_layer():
-#     # Create an empty RGBA image
-#     ir_layer = Image.new("RGBA", (MAP_SIZE_PIXELS[0], MAP_SIZE_PIXELS[1]), (0, 0, 0, 0))
-#     ir_draw = ImageDraw.Draw(ir_layer)
+def render_ir_layer():
+    # Create an empty RGBA image
+    ir_layer = Image.new("RGBA", (MAP_SIZE_PIXELS[0], MAP_SIZE_PIXELS[1]), (0, 0, 0, 0))
+    ir_draw = ImageDraw.Draw(ir_layer)
 
-#     for row in range(MAP_SIZE):
-#         for col in range(MAP_SIZE):
-#             # Get alpha from IR grid
-#             alpha = ir_grid[row][col]
+    for row in range(MAP_SIZE):
+        for col in range(MAP_SIZE):
+            # Get alpha from IR grid
+            alpha = ir_grid[row][col]
 
-#             if alpha > 0:  # Only draw if there's an IR detection
-#                 top_left_x = col * SCALE
-#                 top_left_y = row * SCALE
-#                 bottom_right_x = top_left_x + SCALE
-#                 bottom_right_y = top_left_y + SCALE
+            if alpha > 0:  # Only draw if there's an IR detection
+                top_left_x = col * SCALE
+                top_left_y = row * SCALE
+                bottom_right_x = top_left_x + SCALE
+                bottom_right_y = top_left_y + SCALE
 
-#                 # Draw semi-transparent red rectangle
-#                 ir_draw.rectangle(
-#                     (top_left_x, top_left_y, bottom_right_x, bottom_right_y),
-#                     fill=(255, 0, 0, alpha)  # Red with transparency
-#                 )
+                # Draw semi-transparent red rectangle
+                ir_draw.rectangle(
+                    (top_left_x, top_left_y, bottom_right_x, bottom_right_y),
+                    fill=(255, 0, 0, alpha)  # Red with transparency
+                )
 
-#     return ir_layer
+    return ir_layer
 
 
 def updateOccupancyGridUltrasonic():
@@ -347,6 +347,231 @@ def updateLCD():
 
 
 # ------------------------ # 
+
+
+
+
+
+
+
+# Pathfinding aglorithm
+def a_star(start, goal, grid):
+    rows, cols = len(grid), len(grid[0])
+    open_set = []
+    heappush(open_set, (0, start))  # (priority, cell)
+    came_from = {}
+    g_score = {start: 0}
+    f_score = {start: heuristic(start, goal)}
+
+    while open_set:
+        _, current = heappop(open_set)
+        if current == goal:
+            return reconstruct_path(came_from, current)
+
+        neighbors = get_neighbors(current, rows, cols)
+        for neighbor in neighbors:
+            if grid[neighbor[0]][neighbor[1]] == 1:  # Skip obstacles
+                continue
+            tentative_g_score = g_score[current] + 1
+            if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                came_from[neighbor] = current
+                g_score[neighbor] = tentative_g_score
+                f_score[neighbor] = tentative_g_score + heuristic(neighbor, goal)
+                heappush(open_set, (f_score[neighbor], neighbor))
+    return None  # No path found
+
+def heuristic(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])  # Manhattan distance
+
+def get_neighbors(cell, rows, cols):
+    x, y = cell
+    neighbors = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]  # Right, left, up, down
+    return [(nx, ny) for nx, ny in neighbors if 0 <= nx < rows and 0 <= ny < cols]
+
+def reconstruct_path(came_from, current):
+    path = [current]
+    while current in came_from:
+        current = came_from[current]
+        path.append(current)
+    path.reverse()
+    return path
+
+
+# dynamic obstacle avoidance
+def dynamicObstacleAvoidance():
+    # Update the occupancy grid with sensor data
+    updateOccupancyGridUltrasonic()
+    updateIrGrid()
+
+    # Check for obstacles along the current path
+    for step in current_path:
+        if occupancy_grid[step[0]][step[1]] == 1:  # Obstacle detected
+            print(f"Obstacle detected at {step}, recalculating path...")
+            return True  # Trigger path recalculation
+    return False
+
+def findNearestUnvisited():
+    rows, cols = len(occupancy_grid), len(occupancy_grid[0])
+    for r in range(rows):
+        for c in range(cols):
+            if occupancy_grid[r][c] == -1:  # Unvisited cell
+                return (r, c)
+    return None  # All cells visited
+
+
+
+# Pathfinding loop
+def pathfindingLoop():
+    global current_path
+    target = findNearestUnvisited()  # Select next goal
+
+    if target:
+        print(f"New target: {target}")
+        current_path = a_star(
+            start=(int(robot_position_x / RESOLUTION), int(robot_position_y / RESOLUTION)),
+            goal=target,
+            grid=occupancy_grid
+        )
+
+        if not current_path:
+            print("No path found. Skipping...")
+            return
+
+        for step in current_path:
+            # Check for dynamic obstacles
+            if dynamicObstacleAvoidance():
+                print("Obstacle detected! Recalculating path...")
+                pathfindingLoop()  # Recalculate path
+                return
+
+            # Move to the next step
+            current_position = (int(robot_position_x / RESOLUTION), int(robot_position_y / RESOLUTION))
+            moveInDirection(current_position, step)
+            updateOccupancyGridUltrasonic()  # Mark visited areas in the grid
+            updateLCD()  # Render updated map and robot position
+
+    else:
+        print("All cells visited! Exploration complete.")
+
+
+def follow_path_continuous(path):
+    global robot_position_x, robot_position_y, yaw
+
+    for step in path:
+        current_x, current_y = robot_position_x, robot_position_y
+        target_x, target_y = step
+
+        # Calculate angle to target
+        target_angle = math.degrees(math.atan2(target_y - current_y, target_x - current_x)) % 360
+
+        # Align robot
+        alignToTargetAngle(target_angle, yaw)
+
+        # Calculate distance to target
+        distance = math.sqrt((target_x - current_x)**2 + (target_y - current_y)**2)
+
+        # Move toward target
+
+
+def calculateDirection(current, target):
+    current_x, current_y = current
+    target_x, target_y = target
+
+    if target_x > current_x:
+        return 180  # Moving down
+    elif target_x < current_x:
+        return 0  # Moving up
+    elif target_y > current_y:
+        return 90  # Moving right
+    elif target_y < current_y:
+        return 270  # Moving left
+
+def alignToTargetAngle(target_angle, current_yaw):
+    difference = (target_angle - current_yaw) % 360
+
+    if difference == 0:
+        return  # Already aligned
+    elif difference <= 180:
+        send_command("right")  # Turn right until aligned
+    else:
+        send_command("left")  # Turn left until aligned
+
+def moveInDirection(target_angle, distance):
+    global robot_position_x, robot_position_y
+
+    # Convert angle to radians
+    angle_rad = math.radians(target_angle)
+
+    # Calculate x and y movement
+    delta_x = distance * math.sin(angle_rad)
+    delta_y = distance * math.cos(angle_rad)
+
+    # Update robot's position
+    robot_position_x += delta_x
+    robot_position_y -= delta_y  # Negative y for upward movement on screen
+
+def navigateAroundObstacle(obstacle_angle):
+    # Adjust target angle to avoid obstacle
+    if obstacle_angle < 180:
+        new_angle = (obstacle_angle + 30) % 360  # Turn slightly right
+    else:
+        new_angle = (obstacle_angle - 30) % 360  # Turn slightly left
+
+    alignToTargetAngle(new_angle, yaw)
+    send_command("forward")  # Move in the new direction
+
+
+# sending commands to arduino
+def send_command(command):
+    print(f"Sending command: {command}")
+    # ser.write(f"{command}\n".encode())  # Send the command followed by a newline
+    # time.sleep(0.1)  # Give Arduino time to process the command
+    # response = ser.readline().decode().strip()
+    # print(f"Arduino response: {response}")
+
+
+
+def decideMovement():
+    global robot_direction
+
+    # Static sensor: Check if an obstacle is directly ahead
+    if static_ultrasonic_distance < 10:  # Example threshold
+        print("Obstacle ahead! Turning...")
+        robot_direction = (robot_direction + 90) % 360  # Turn right
+
+    else:
+        print("Path is clear! Moving forward...")
+        updateRobotPosition(left_wheel_counts, right_wheel_counts)  # Move forward based on encoders
+
+    # Rotating sensors: Check surroundings for open space
+    for reading in rotating_sensor_data:
+        if reading["distance"] > 15:  # Example threshold for open space
+            print(f"Open space detected at angle {reading['angle']}!")
+            # Optionally steer towards open space
+
+
+def moveRobot(command):
+    if command == "forward":
+        send_command("forward")
+        print("Moving forward...")
+        left_wheel_counts += 50  # Simulate forward movement
+        right_wheel_counts += 50
+        updateRobotPosition(left_wheel_counts, right_wheel_counts)
+
+    elif command == "left":
+        send_command("left")
+        print("Turning left...")
+        robot_direction = (robot_direction - 90) % 360  # Turn left
+
+    elif command == "right":
+        send_command("right")
+        print("Turning right...")
+        robot_direction = (robot_direction + 90) % 360  # Turn right
+
+    elif command == "stop":
+        send_command("stop")
+
+
 
 
 
