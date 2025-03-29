@@ -194,11 +194,8 @@ void ESCAPE() {
 //}
 
 int robot_angle = getYawAngle();
-int trn = 1;
-bool fuck2 = true;
 
 void loop() {
-    float lowDist = INFINITY;
     
      
     robot_angle = getYawAngle();
@@ -219,11 +216,12 @@ void loop() {
         stopMotors();
         delay(5000);
         if (getTemp() > 35) {
-          
+          //TODO: go home or something
+        }
+        else {
+          turn(90);
         }
       }
-
-
     
     }
     
