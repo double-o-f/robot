@@ -64,7 +64,7 @@ float gyroZOffset = 0;
 // for turning and orientation
 // global target angle, gets updated by pi slam algorithm, robot moves as data is still being communicated
 int target_angle = 20;  // 20 for testing
-int robot_angle = 0;   // i think implementation is on connor computer
+// int robot_angle = 0;   // i think implementation is on connor computer
 
 const int DHT_PIN = 19;
 #define DHT_TYPE DHT22
@@ -104,57 +104,57 @@ void setup() {
 }
 
 
-// different implementation of setAngle()
-void turnToAngle(int target_angle, String direction) {
+// // different implementation of setAngle()
+// void turnToAngle(int target_angle, String direction) {
 
-  robot_angle = getYawAngle();
-  Serial.print("Target: ");
-  Serial.print(target_angle);
-  Serial.print("  Robot: ");
-  Serial.println(robot_angle);
+//   robot_angle = getYawAngle();
+//   Serial.print("Target: ");
+//   Serial.print(target_angle);
+//   Serial.print("  Robot: ");
+//   Serial.println(robot_angle);
 
-  int diff = target_angle - robot_angle;
-  if (diff > 180) { 
-    diff -= 360;  // Shorter path backward
-  } else if (diff < -180) {
-      diff += 360;  // Shorter path forward
-  }
-
-
-  if (direction == "forward") {
-    digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
-    digitalWrite(L_WHEEL_IN2, LOW); 
-
-    digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
-    digitalWrite(R_WHEEL_IN2, LOW);  
-  }
-  else {
-    digitalWrite(L_WHEEL_IN1, LOW);   // motor reverse
-    digitalWrite(L_WHEEL_IN2, HIGH); 
-
-    digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
-    digitalWrite(R_WHEEL_IN2, HIGH);  
-  }
+//   int diff = target_angle - robot_angle;
+//   if (diff > 180) { 
+//     diff -= 360;  // Shorter path backward
+//   } else if (diff < -180) {
+//       diff += 360;  // Shorter path forward
+//   }
 
 
-  if (diff > 0) {
-    // turn right with left wheel faster
-    analogWrite(R_WHEEL_SPEED, 20); 
-    analogWrite(L_WHEEL_SPEED, 255);
-    Serial.println("turning right");
+//   if (direction == "forward") {
+//     digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+//     digitalWrite(L_WHEEL_IN2, LOW); 
 
-  } 
-  else if (diff < 0) {
-    // turn left with right wheel faster
-    analogWrite(R_WHEEL_SPEED, 255);  
-    analogWrite(L_WHEEL_SPEED, 20);
-  }
-  else {
-    // go straight in forward or back direction
-    analogWrite(R_WHEEL_SPEED, 255);  
-    analogWrite(L_WHEEL_SPEED, 255);
-  }
-}
+//     digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+//     digitalWrite(R_WHEEL_IN2, LOW);  
+//   }
+//   else {
+//     digitalWrite(L_WHEEL_IN1, LOW);   // motor reverse
+//     digitalWrite(L_WHEEL_IN2, HIGH); 
+
+//     digitalWrite(R_WHEEL_IN1, LOW);  // motor reverse
+//     digitalWrite(R_WHEEL_IN2, HIGH);  
+//   }
+
+
+//   if (diff > 0) {
+//     // turn right with left wheel faster
+//     analogWrite(R_WHEEL_SPEED, 20); 
+//     analogWrite(L_WHEEL_SPEED, 255);
+//     Serial.println("turning right");
+
+//   } 
+//   else if (diff < 0) {
+//     // turn left with right wheel faster
+//     analogWrite(R_WHEEL_SPEED, 255);  
+//     analogWrite(L_WHEEL_SPEED, 20);
+//   }
+//   else {
+//     // go straight in forward or back direction
+//     analogWrite(R_WHEEL_SPEED, 255);  
+//     analogWrite(L_WHEEL_SPEED, 255);
+//   }
+// }
 
 
 void ESCAPE() {
@@ -320,6 +320,49 @@ void calibrateGyro() {
   
 
 // }
+
+
+
+
+int robot_angle = 0;
+
+void turn(int angle) {
+
+    if (angle > 0) {
+        while (robot_angle < (robot_angle + angle))
+            digitalWrite(L_WHEEL_IN1, HIGH);  // L motor forward
+            digitalWrite(L_WHEEL_IN2, LOW); 
+            analogWrite(R_WHEEL_SPEED, 255); 
+        
+            digitalWrite(R_WHEEL_IN1, LOW);   // R motor backward
+            digitalWrite(R_WHEEL_IN2, HIGH);  
+            analogWrite(L_WHEEL_SPEED, 255);
+    }
+    else {
+        while (robot_angle > (robot_angle + angle))
+            digitalWrite(L_WHEEL_IN1, LOW);  // L motor backward
+            digitalWrite(L_WHEEL_IN2, HIGH); 
+            analogWrite(R_WHEEL_SPEED, 255); 
+        
+            digitalWrite(R_WHEEL_IN1, HIGH);   // R motor forward
+            digitalWrite(R_WHEEL_IN2, LOW);  
+            analogWrite(L_WHEEL_SPEED, 50);
+    }
+
+}
+
+
+void forward(int time) {
+
+
+
+
+    delay(time * 1000); // in seconds
+    stopMotors();
+
+}
+
+
 
 
 
