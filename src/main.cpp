@@ -10,7 +10,7 @@
 // --------- Function Prototypes --------- //
 void checkQuit();
 float calculateDistance(const int, const int);
-void calculateData(int);
+void sendData(int);
 void rotateMotor(const int, const int, const int);
 void stopMotors();
 
@@ -98,13 +98,7 @@ void setup() {
   pinMode(WHEEL_IN1, OUTPUT);
   pinMode(WHEEL_IN2, OUTPUT);
 
-
-
-
-  // mlx.begin();
-
-  mpu.begin();
-
+  mpu.begin(); //this line likes to cause hang
   calibrateGyro();
 
   // can try different range for more accurate readings (2-16)
@@ -116,25 +110,14 @@ void setup() {
 
 
 
-
-
 void loop() {
-
-  // if (millis() % 100)   // rotate every 100 milliseconds
-  radarServo.write(radarAngle);
-
-
-  calculateData(radarAngle);
-
-  // float angle = getYawAngle();
-  // Serial.println(angle);
+  sendData(); //check all sensors and send data to pi
 
   // update radar angle
   if (radarAngle >= RS_ANGLE_MAX || radarAngle <= RS_PIN)
     RS_ANGLE_INTERVAL = -RS_ANGLE_INTERVAL;
 
   radarAngle += RS_ANGLE_INTERVAL;
-
 }
 
 
@@ -238,7 +221,7 @@ void stopMotors() {
   analogWrite(WHEEL_ENB, 0);
 }
 
-void rotateMotor(const int ENA, const int IN1, const int IN2) {
+void rotateMotor(const int EN, const int IN1, const int IN2) {
 
   /*
 
@@ -253,18 +236,60 @@ void rotateMotor(const int ENA, const int IN1, const int IN2) {
   // Rotate motor forward
   digitalWrite(IN1, HIGH);
   digitalWrite(IN2, LOW);
-  analogWrite(ENA, 255); // Set speed (0-255)
+  analogWrite(EN, 255); // Set speed (0-255)
 
 }
 
-void calculateData(int angle){
 
-  String data = ("AG:" + String(angle)                                       + ":AG-" + 
+void mvForward() {
+  digitalWrite(WHEEL_IN1, HIGH);
+  digitalWrite(WHEEL_IN2, LOW);
+  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+
+  digitalWrite(WHEEL_IN3, LOW);
+  digitalWrite(WHEEL_IN4, HIGH);
+  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+}
+
+void mvBackward() {
+  digitalWrite(WHEEL_IN1, LOW);
+  digitalWrite(WHEEL_IN2, HIGH);
+  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+
+  digitalWrite(WHEEL_IN3, HIGH);
+  digitalWrite(WHEEL_IN4, LOW);
+  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+}
+
+void trnLeft() {
+  digitalWrite(WHEEL_IN1, LOW);
+  digitalWrite(WHEEL_IN2, HIGH);
+  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+
+  digitalWrite(WHEEL_IN3, LOW);
+  digitalWrite(WHEEL_IN4, HIGH);
+  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+}
+
+void trnLeft() {
+  digitalWrite(WHEEL_IN1, HIGH);
+  digitalWrite(WHEEL_IN2, LOW);
+  analogWrite(WHEEL_ENA, 255); // Set speed (0-255)
+
+  digitalWrite(WHEEL_IN3, HIGH);
+  digitalWrite(WHEEL_IN4, LOW);
+  analogWrite(WHEEL_ENB, 255); // Set speed (0-255)
+}
+
+
+void sendData(){
+
+  String data = ("AG:" + String(radarAngle)                                  + ":AG-" + 
                  "DF:" + String(calculateDistance(UF_TRIG_PIN, UF_ECHO_PIN)) + ":DF-" + 
                  "DP:" + String(calculateDistance(UR_TRIG_PIN, UR_ECHO_PIN)) + ":DP-" + 
                  //"TR:" + String(mlx.readAmbientTempC())                      + ":TR-" +
                  //"TO:" + String(mlx.readObjectTempC())                       + ":TO-" +
-                 "YA:" + String(int(getYawAngle() - gyroZOffset))                          + ":YA-");
+                 "YA:" + String(int(getYawAngle() - gyroZOffset))            + ":YA-");
 
   Serial.println(data);
 }
